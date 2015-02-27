@@ -8,7 +8,7 @@ from lmSRILM import SRILangModel
 
 class Rule(object):
     '''Structure to save rules/phrases'''
-    __slots__ = "score", "lm_heu", "src", "tgt", "featVec", "tgt_elided", "lm_right", "src_len", "tm4_score", "dist"
+    __slots__ = "score", "lm_heu", "src", "tgt", "featVec", "tgt_elided", "lm_right", "src_len", "tm4_score", "dist", "lrm"
     
     def __init__(self, score, lm_heu, src, tgt, featVec, tgt_elided='', sign=None, r_lm_state=None):
         self.score = score
@@ -18,6 +18,8 @@ class Rule(object):
         self.featVec = featVec[:]
 	self.tgt_elided = tgt_elided
         self.lm_right = r_lm_state
+        if setting.feat.lrm: self.lrm = [(0,0,0), (0,0,0)]  #TODO: read p(o) from config filr
+        else: self.lrm = None
 	
     def completeInfo(self):
 	self.tm4_score = self.featVec[0] * settings.feat.tm[0] + self.featVec[1] * settings.feat.tm[1] +\
@@ -46,6 +48,7 @@ class Rule(object):
         other.lm_right = self.lm_right
 	other.src_len = self.src_len
 	other.dist = self.dist
+	other.lrm = self.lrm
         return other
 
     def getScore(self):

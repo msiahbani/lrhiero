@@ -23,8 +23,8 @@ class PhraseTable(object):
     glue_trie = None
     ruleDict = {}
     gruleDict = {}
-    phrasePairs = {}
     terminalRules = {}
+    lrmDict = {}
     __slots__ = "wVec", "ttl", "pp_val", "ttlg"
 
     def __init__(self, TOT_TERMS):
@@ -38,9 +38,12 @@ class PhraseTable(object):
 
         tm_wgts_str = ' '.join( [str(x) for x in self.wVec.tm] )
 	reorder_wgts_str = "d:"+str(self.wVec.d)+" dg:"+str(self.wVec.dg)+" r:"+str(self.wVec.r)+" w:"+str(self.wVec.w)+" h:"+str(self.wVec.h)
-        sys.stderr.write( "Weights are : [%s] %g %g %g %s\n" % (tm_wgts_str, self.wVec.wp, self.wVec.glue, self.wVec.lm, reorder_wgts_str) )
-
+        lrm_wgts_str = '['+' '.join( [str(x) for x in self.wVec.lrm] )+']' if self.wVec.lrm else ''
+        sys.stderr.write( "Weights are : [%s] %g %g %g %s %s\n" % (tm_wgts_str, self.wVec.wp, self.wVec.glue, self.wVec.lm, reorder_wgts_str, lrm_wgts_str) )
+        
+        self.loadLRM()
         self.loadRules(settings.opts.max_phr_len)
+        self.lrmDict.clear()
 	self.makeGlueRules(TOT_TERMS)
 
     def delPT(self):
@@ -48,6 +51,39 @@ class PhraseTable(object):
         del PhraseTable.gruleDict 
         PhraseTable.src_trie = None
         PhraseTable.glue_trie = None
+
+    def loadLRM(self):
+        '''Loads the filtered phrases for LRM'''
+
+        prev_src = ''
+        uniq_src_rules = 0
+        tgtDict = {}
+        t_beg = time.time()
+        sys.stderr.write( "Loading phrases from file              : %s\n" % (settings.opts.lrmFile) )
+        with open(settings.opts.lrmFile, 'r') as rF:
+            for line in rF:
+                line = line.strip()
+                (src, tgt, l2r, r2l) = line.split(' ||| ')[0:4]                       # For Kriya phrase table
+#                (src, tgt, f_align, r_align, probs) = line.split(' ||| ')     # For Moses phrase table
+		src = src.strip()
+		tgt = tgt.strip()
+                l2r_v = [float(p) for p in l2r.strip().split()] 
+                r2l_v = [float(p) for p in r2l.strip().split()] 
+                if settings.opts.force_decode and not PhraseTable.tgtMatchesRef(tgt): continue
+
+                if len(prev_src) > 0 and prev_src != src:
+                    uniq_src_rules += 1
+                    self.lrmDict[prev_src] = tgtDict 
+                    tgtDict = {}
+                tgtDict[tgt] = (l2r_v, r2l_v)
+                prev_src = src
+            self.lrmDict[prev_src] = tgtDict
+            tgtDict = {}
+
+        t_end = time.time()
+        sys.stderr.write( "Unique source phrases found            : %d\n" % (uniq_src_rules) )
+        sys.stderr.write( "Time taken for loading phrases         : %1.3f sec\n\n" % (t_end - t_beg) )
+
 
     def loadRules(self, TOT_TERMS):
         '''Loads the filtered rules and filters them further by using the Suffix Tree of test data'''
@@ -59,7 +95,6 @@ class PhraseTable(object):
 	featVec[4] = self.pp_val
         uniq_src_rules = 0
         entriesLst = []
-	PhraseTable.phrasePairs = {}
 	lm_H = 0
 
         t_beg = time.time()
@@ -96,6 +131,10 @@ class PhraseTable(object):
                         entry_obj.lm_heu = self.wVec.lm * self.getLMHeuScore(entry_obj.tgt)
                         entry_obj.completeInfo()
                         PhraseTable.ruleDict[prev_src].append( entry_obj )
+                        # compute lexicalized reordering model features
+                        if self.wVec.lrm:
+                            phr = self.convertRule2Phr((prev_src, entry_obj.tgt))
+                            entry_obj.lrm = self.lrmDict[phr[0]][phr[1]]
                         tgt_options += 1
                         if(self.ttl > 0 and tgt_options >= self.ttl): break
                     del entriesLst[:]
@@ -129,6 +168,26 @@ class PhraseTable(object):
 
         return None
 
+    @classmethod
+    def convertRule2Phr(cls, rule):
+        '''Convert the rule to phrase format (remove the boundary non-terminals and replace the others with a uniqe token)'''
+
+        srcLst = []
+        src = rule[0].split()
+        l = len(src)
+        for i,s_tok in enumerate(src):
+            if s_tok.startswith("X__"):
+                if i!=0 and i!=l-1: srcLst.append("NON_TOK")
+            else: srcLst.append(s_tok)
+
+        # remove non-terminals from tgt
+        tgt = rule[1]
+        x = rule[1].find("X__")
+        if x >= 0: tgt = rule[1][:x].strip()
+
+        return (" ".join(srcLst), tgt)
+
+
     def buildFeatVec(self, probs, tgt_rule):
         '''Build the feature vector from a string of probs and add to it phrase & word penalty and glue score'''
 
@@ -145,13 +204,14 @@ class PhraseTable(object):
 	tgtReordering = 0
 	for w in tgt_rule.split():
 	    if not w.startswith("X__"):
-		term_count += 1 
+		term_count += 1
 	    elif w!="X__"+str(term_count): tgtReordering = 1
         featVec += [self.pp_val, -term_count, 0, 0] 
 	fLen = len(featVec)
 	for i in range(len(settings.opts.U_lpTup[2]) - fLen):
             featVec.append(0)
 	featVec[10] = tgtReordering ## feature "r"
+
 
     def makeGlueRules(self, TOT_TERMS):  
         '''Loads the glue rules along with their feature values'''
@@ -209,6 +269,7 @@ class PhraseTable(object):
 			featVec[4] = 0
 			entry_objCpy = Rule(0, entry_obj.lm_heu, glue_src, entry_obj.tgt + tgt_pf, featVec)
 			entry_objCpy.completeInfo()
+			entry_objCpy.lrm = entry_obj.lrm
 			tmpRuleLst.append( entry_objCpy )
 			if src_index == 2:
 			    PhraseTable.tot_rule_pairs += 1  
@@ -217,6 +278,7 @@ class PhraseTable(object):
 			    featVec[10] = 1                             ## it is a rule with reordered nonterminals: <X1 src X2/tgt X2 X1>
 			    entry_objCpy = Rule(0, entry_obj.lm_heu, glue_src, entry_obj.tgt + tgts[src_index+1], featVec)
 			    entry_objCpy.completeInfo()
+			    entry_objCpy.lrm = entry_obj.lrm
 			    tmpRuleLst.append( entry_objCpy )
 			tgt_options += 1
 			if(tgt_options >= self.ttlg): 
@@ -402,6 +464,7 @@ class PhraseTable(object):
     
     @classmethod
     def createUNKRule(cls, src_phr):
+        ##TODO:  add LRM for unk rules!
 	featVec = settings.opts.U_lpTup[2][:]
 	featVec[settings.opts.lm_index] = 0
 	lm_score = settings.feat.lm * cls.getLMHeuScore(src_phr)
