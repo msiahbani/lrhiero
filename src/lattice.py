@@ -11,7 +11,7 @@ class Lattice(object):
     '''(phrase/rule)-lattice, 2D table. (not to be confused with search chart)'''
 
     fc_table = {}
-    spanToRuleDict = {}
+    spanToRuleDict = {}           # dict of dict which map (span, src_rule) to spans and positions of lexical terms (as a set), it helps us to compute lexicalized reordering model during decoding
     ruleLookUpTable = {}
     this = None
     
@@ -41,11 +41,9 @@ class Lattice(object):
     def clear():
 	'''Clear the static data-structures'''
 	del Lattice.fc_table
-	for sp in Lattice.spanToRuleDict.itervalues():
-	    sp = ''
+	for sp in Lattice.spanToRuleDict.itervalues():	     sp = ''
 	del Lattice.spanToRuleDict
-	for sp in Lattice.ruleLookUpTable.itervalues():
-	    sp = ''
+	for sp in Lattice.ruleLookUpTable.itervalues():	     sp = ''
 	del Lattice.ruleLookUpTable
 	Lattice.this = None	
 	
@@ -180,17 +178,19 @@ class Lattice(object):
 	    if abs(i-j) <= settings.opts.max_phr_len: matchLst += PhraseTable.findConsistentRules(span_phrase)
 
             for match in matchLst:
-		#if len(match[1])%2 != 0:
-		#    print "Err in getRuleSpans", match[0], match[1]
-		#    exit(1)		
+		assert (len(match[1])%2 == 0) , "Error in getRuleSpans\n rule: %s, spans: %s" %( match[0], ' '.join(map(lambda x: str(x), match[1])) )
                 spans = []
                 rule = match[0]
+		gapPos = set()
 		if rule in Lattice.spanToRuleDict[(i,j)]: continue
                 for xind in range(0,len(match[1]),2):
                     span = (match[1][xind]+i, match[1][xind+1]+i+1) ##TODO: be careful!!
                     if span == (i,j): continue
                     spans.append(span)
-                Lattice.spanToRuleDict[(i,j)][rule] = spans ## TODO: it should be tuple or list?
+		    # compute lexical postions for lexical terms of src_rule
+		    if settings.opts.rm_weight_cnt > 0: gapPos += set(range(span[0],span[1]))		    
+		if settings.opts.rm_weight_cnt > 0:  Lattice.spanToRuleDict[(i,j)][rule] = (spans, set(range(i,j)) - gapPos) #span is a list, posLex is a set
+                else:                                Lattice.spanToRuleDict[(i,j)][rule] = (spans, gapPos) 
 	
     def matchRule(self, (start, end)):
         if (start, end) in Lattice.ruleLookUpTable: return

@@ -24,7 +24,7 @@ class PhraseTable(object):
     ruleDict = {}
     gruleDict = {}
     terminalRules = {}
-    lrmDict = {}
+    rmDict = {}
     __slots__ = "wVec", "ttl", "pp_val", "ttlg"
 
     def __init__(self, TOT_TERMS):
@@ -38,12 +38,12 @@ class PhraseTable(object):
 
         tm_wgts_str = ' '.join( [str(x) for x in self.wVec.tm] )
 	reorder_wgts_str = "d:"+str(self.wVec.d)+" dg:"+str(self.wVec.dg)+" r:"+str(self.wVec.r)+" w:"+str(self.wVec.w)+" h:"+str(self.wVec.h)
-        lrm_wgts_str = '['+' '.join( [str(x) for x in self.wVec.lrm] )+']' if self.wVec.lrm else ''
-        sys.stderr.write( "Weights are : [%s] %g %g %g %s %s\n" % (tm_wgts_str, self.wVec.wp, self.wVec.glue, self.wVec.lm, reorder_wgts_str, lrm_wgts_str) )
+        rm_wgts_str = '['+' '.join( [str(x) for x in self.wVec.rm] )+']' if self.wVec.rm else ''
+        sys.stderr.write( "Weights are : [%s] %g %g %g %s %s\n" % (tm_wgts_str, self.wVec.wp, self.wVec.glue, self.wVec.lm, reorder_wgts_str, rm_wgts_str) )
         
-        self.loadLRM()
+        self.loadReorderingModel()
         self.loadRules(settings.opts.max_phr_len)
-        self.lrmDict.clear()
+        self.rmDict.clear()
 	self.makeGlueRules(TOT_TERMS)
 
     def delPT(self):
@@ -52,15 +52,15 @@ class PhraseTable(object):
         PhraseTable.src_trie = None
         PhraseTable.glue_trie = None
 
-    def loadLRM(self):
-        '''Loads the filtered phrases for LRM'''
+    def loadReorderingModel(self):
+        '''Loads the filtered phrases for Lexicalized Reordering Model'''
 
         prev_src = ''
         uniq_src_rules = 0
         tgtDict = {}
         t_beg = time.time()
-        sys.stderr.write( "Loading phrases from file              : %s\n" % (settings.opts.lrmFile) )
-        with open(settings.opts.lrmFile, 'r') as rF:
+        sys.stderr.write( "Loading phrases from file              : %s\n" % (settings.opts.rmFile) )
+        with open(settings.opts.rmFile, 'r') as rF:
             for line in rF:
                 line = line.strip()
                 (src, tgt, l2r, r2l) = line.split(' ||| ')[0:4]                       # For Kriya phrase table
@@ -73,11 +73,11 @@ class PhraseTable(object):
 
                 if len(prev_src) > 0 and prev_src != src:
                     uniq_src_rules += 1
-                    self.lrmDict[prev_src] = tgtDict 
+                    self.rmDict[prev_src] = tgtDict 
                     tgtDict = {}
                 tgtDict[tgt] = (l2r_v, r2l_v)
                 prev_src = src
-            self.lrmDict[prev_src] = tgtDict
+            self.rmDict[prev_src] = tgtDict
             tgtDict = {}
 
         t_end = time.time()
@@ -130,11 +130,11 @@ class PhraseTable(object):
                         entry_obj = pt_item_obj.entry_item
                         entry_obj.lm_heu = self.wVec.lm * self.getLMHeuScore(entry_obj.tgt)
                         entry_obj.completeInfo()
-                        PhraseTable.ruleDict[prev_src].append( entry_obj )
                         # compute lexicalized reordering model features
-                        if self.wVec.lrm:
+                        if settings.opts.rm_weight_cnt > 0:
                             phr = self.convertRule2Phr((prev_src, entry_obj.tgt))
-                            entry_obj.lrm = self.lrmDict[phr[0]][phr[1]]
+                            entry_obj.rm = self.rmDict[phr[0]][phr[1]]
+			PhraseTable.ruleDict[prev_src].append( entry_obj )
                         tgt_options += 1
                         if(self.ttl > 0 and tgt_options >= self.ttl): break
                     del entriesLst[:]
@@ -154,6 +154,10 @@ class PhraseTable(object):
                 lm_score = self.wVec.lm * self.getLMHeuScore(entry_obj.tgt)
                 entry_obj.lm_heu = lm_score
                 entry_obj.completeInfo()
+		# compute lexicalized reordering model features
+		if settings.opts.rm_weight_cnt > 0:
+		    phr = self.convertRule2Phr((prev_src, entry_obj.tgt))
+		    entry_obj.rm = self.rmDict[phr[0]][phr[1]]		
                 PhraseTable.ruleDict[prev_src].append( entry_obj )
                 tgt_options += 1
                 if(self.ttl > 0 and tgt_options >= self.ttl): break
@@ -269,7 +273,7 @@ class PhraseTable(object):
 			featVec[4] = 0
 			entry_objCpy = Rule(0, entry_obj.lm_heu, glue_src, entry_obj.tgt + tgt_pf, featVec)
 			entry_objCpy.completeInfo()
-			entry_objCpy.lrm = entry_obj.lrm
+			entry_objCpy.rm = entry_obj.rm
 			tmpRuleLst.append( entry_objCpy )
 			if src_index == 2:
 			    PhraseTable.tot_rule_pairs += 1  
@@ -278,7 +282,7 @@ class PhraseTable(object):
 			    featVec[10] = 1                             ## it is a rule with reordered nonterminals: <X1 src X2/tgt X2 X1>
 			    entry_objCpy = Rule(0, entry_obj.lm_heu, glue_src, entry_obj.tgt + tgts[src_index+1], featVec)
 			    entry_objCpy.completeInfo()
-			    entry_objCpy.lrm = entry_obj.lrm
+			    entry_objCpy.rm = entry_obj.rm
 			    tmpRuleLst.append( entry_objCpy )
 			tgt_options += 1
 			if(tgt_options >= self.ttlg): 
@@ -464,7 +468,7 @@ class PhraseTable(object):
     
     @classmethod
     def createUNKRule(cls, src_phr):
-        ##TODO:  add LRM for unk rules!
+        ##TODO:  add Lexicalized Rordering Model for unk rules!
 	featVec = settings.opts.U_lpTup[2][:]
 	featVec[settings.opts.lm_index] = 0
 	lm_score = settings.feat.lm * cls.getLMHeuScore(src_phr)

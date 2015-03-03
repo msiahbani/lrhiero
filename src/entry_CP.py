@@ -10,14 +10,15 @@ from lmSRILM import SRILangModel
 class Entry(object):
     '''Individual entries in the cells of the parse triangle'''
 
-    __slots__ = "score", "tgt", "featVec", "tgt_elided", "depth_hier", "inf_cell", "inf_entry", "bp", "cand_score", "lm_right", "sign"
+    __slots__ = "score", "tgt", "featVec", "tgt_elided", "depth_hier", "inf_cell", "inf_entry", "bp", "cand_score", "lm_right", "sign", "prev_phr"
  
-    def __init__(self, score, tgt, featVec, tgt_elided, sign=None, rule_depth=0, inf_cell=(), inf_entry=None, bp=(), cand_score=0.0, r_lm_state=None):
+    def __init__(self, score, tgt, featVec, tgt_elided, sign=None, pre_phr=None, rule_depth=0, inf_cell=(), inf_entry=None, bp=(), cand_score=0.0, r_lm_state=None):
         self.score = score
         self.tgt = tgt
         self.featVec = featVec[:]
 	self.tgt_elided = tgt_elided
 	self.sign = sign
+	self.prev_phr = pre_phr
         self.depth_hier = rule_depth
         self.inf_cell = inf_cell
         self.inf_entry = inf_entry                                      # Entry object for the consequent entry
@@ -33,6 +34,7 @@ class Entry(object):
         other.tgt = self.tgt
 	other.tgt_elided = self.tgt_elided
         other.featVec = self.featVec[:]
+	other.prev_phr = self.prev_phr
         other.depth_hier = self.depth_hier
         other.inf_entry = None
         other.bp = ()
@@ -88,20 +90,23 @@ class Entry(object):
             feats = ['lm:', 'glue:', 'wp:', 'tm:']
 	reorderFeats = []
 	if settings.opts.weight_d != 0:
-		feats.append('d:')
-		reorderFeats.append(self.featVec[8])
+	    feats.append('d:')
+	    reorderFeats.append(self.featVec[8])
 	if settings.opts.weight_dg != 0:
-		feats.append('dg:')
-		reorderFeats.append(self.featVec[9])
+	    feats.append('dg:')
+	    reorderFeats.append(self.featVec[9])
 	if settings.opts.weight_r != 0:
-		feats.append('r:')
-		reorderFeats.append(self.featVec[10])
+	    feats.append('r:')
+	    reorderFeats.append(self.featVec[10])
 	if settings.opts.weight_w != 0:
-		feats.append('wd:')
-		reorderFeats.append(self.featVec[11])
+	    feats.append('wd:')
+	    reorderFeats.append(self.featVec[11])
 	if settings.opts.weight_h!= 0:
-		feats.append('hd:')
-		reorderFeats.append(self.featVec[12])
+	    feats.append('hd:')
+	    reorderFeats.append(self.featVec[12])
+        if settings.opts.rm_weight_cnt > 0:
+	    feats.append('rm:')
+	    reorderFeats.append(' '.join( map(lambda x: str(x), self.featVec[13:19]) ))	
 	reorder_str = ' '.join(map(lambda x: str(x), reorderFeats))
         tm_str = ' '.join( map(lambda x: str(x), self.featVec[0:5]) )
         if (settings.opts.zmert_nbest):
@@ -156,6 +161,7 @@ class Entry(object):
         print "Target          :", self.tgt
         print "Elided          :", self.tgt_elided
         print "Feat-vec        :", self.featVec
+	print "previous phr    :", self.prev_phr
         print "Bpointer        :", self.bp[0]
         print "Parent rule     :", self.bp[1]
 	unc_span_str = ",".join([str(t) for t in self.unc_spans])

@@ -50,8 +50,8 @@ def decode_CP(sent_indx, lattice_obj):
 		## log: print the group of hypotheses for span: unc_span
 		for src_rule in Lattice.ruleLookUpTable[unc_span].get(p_l, []):
 		    # set the source side rule and span for the current cube
-		    spanLst = Lattice.spanToRuleDict[unc_span][src_rule]
-		    Lazy.setSourceInfo( merge_obj, cube_indx, src_rule, unc_span, spanLst, 0)
+		    (spanLst, lexPos) = Lattice.spanToRuleDict[unc_span][src_rule]
+		    Lazy.setSourceInfo( merge_obj, cube_indx, src_rule, unc_span, spanLst, lexPos, 0)
 		    #print "new Cube:", cube_indx, src_rule, unc_span, spanLst
 		    # add the hypothesis list to the cube as its first dimension
 		    Lazy.add2Cube(merge_obj, cube_indx, hypsLst)

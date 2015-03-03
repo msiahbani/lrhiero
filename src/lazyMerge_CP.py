@@ -50,9 +50,9 @@ class Lazy(object):
         Lazy.clearTracker()         # clears the tracking dict
 	Cover.clear()               # clears repository of coverage vector
 
-    def setSourceInfo(self, cube_indx, src_rule, src_span, spanT, cube_depth_hier, candRefsLst=[]):
+    def setSourceInfo(self, cube_indx, src_rule, src_span, spanT, lexPos, cube_depth_hier, candRefsLst=[]):
         cube_obj = self.__getObject(cube_indx)
-        Cube.setSourceInfo(cube_obj, src_rule, src_span, spanT, cube_depth_hier)
+        Cube.setSourceInfo(cube_obj, src_rule, src_span, spanT, lexPos, cube_depth_hier)
         if settings.opts.force_decode: Lazy.refsLst = candRefsLst
 
     def add2Cube(self, cube_indx, ruleLst):
@@ -242,7 +242,7 @@ class Lazy(object):
 
 
 class Cube(object):
-    __slots__ = "dimensions", "src_side", "src_span", "spanLst", "ruleLst", "initDimVec", "trackCubeDict", "depth_hier", "cbp_heap_diversity", "cover", "LMCache", "setCube", "boundLst"
+    __slots__ = "dimensions", "src_side", "src_span", "spanLst", "ruleLst", "initDimVec", "trackCubeDict", "depth_hier", "cbp_heap_diversity", "cover", "LMCache", "setCube", "boundLst", "lexPosLst"
 
     def __init__(self, cbp_heap_diversity, isSet=False):
         '''Initializes the Cube surface'''
@@ -259,6 +259,7 @@ class Cube(object):
         self.LMCache = {}
         self.setCube = isSet
         self.boundLst = None
+	self.lexPosLst = []
 
     def __del__(self):
         '''Clear the rule and feature lists'''
@@ -270,7 +271,7 @@ class Cube(object):
         del self.LMCache
         del self.boundLst
 
-    def setSourceInfo(self, src_rule, src_span, spanLst, cube_depth_hier):
+    def setSourceInfo(self, src_rule, src_span, spanLst, lexPos, cube_depth_hier):
         '''Sets the source side rule, span and spans of nonterminals for the current cube'''
 
         self.src_side = src_rule
@@ -278,6 +279,7 @@ class Cube(object):
         self.spanLst = spanLst[:]
         self.depth_hier = cube_depth_hier
 	self.setCube = True if src_rule.endswith("X__2 X__3") else False
+	self.lexPosLst = lexPos
 
     def addTuple(self, rLst):
         '''Adds the rule and feature lists to the current cube'''
@@ -433,12 +435,16 @@ class Cube(object):
                     print self.spanLst, ent_obj.src, ent_obj.tgt
                     print str(ent_obj)
                     exit(1)
+		# Add distortion
 		if ent_obj.isGlue(): 
 		    fVec[9] -= dist
 		    score += (-dist)*settings.opts.weight_dg
 		else: 
 		    fVec[8] -= dist
 		    score += (-dist)*settings.opts.weight_d
+		# Add lexical reordering model
+		#if settings.opts.rm_weight_cnt > 0:
+		    
                 # Add antecedent item to the consequent item
                 cons_item.addAntecedent( ent_obj.tgt_elided, ent_obj.tgt_elided, ent_obj.lm_right )
             dim += 1

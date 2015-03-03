@@ -8,7 +8,7 @@ from lmSRILM import SRILangModel
 
 class Rule(object):
     '''Structure to save rules/phrases'''
-    __slots__ = "score", "lm_heu", "src", "tgt", "featVec", "tgt_elided", "lm_right", "src_len", "tm4_score", "dist", "lrm"
+    __slots__ = "score", "lm_heu", "src", "tgt", "featVec", "tgt_elided", "lm_right", "src_len", "tm4_score", "dist", "rm"
     
     def __init__(self, score, lm_heu, src, tgt, featVec, tgt_elided='', sign=None, r_lm_state=None):
         self.score = score
@@ -18,8 +18,8 @@ class Rule(object):
         self.featVec = featVec[:]
 	self.tgt_elided = tgt_elided
         self.lm_right = r_lm_state
-        if setting.feat.lrm: self.lrm = [(0,0,0), (0,0,0)]  #TODO: read p(o) from config filr
-        else: self.lrm = None
+        if settings.opts.rm_weight_cnt > 0: self.rm = [(0.0,0.0,0.0), (0.0,0.0,0.0)]  #TODO: read p(o) from config file
+        else: self.rm = None
 	
     def completeInfo(self):
 	self.tm4_score = self.featVec[0] * settings.feat.tm[0] + self.featVec[1] * settings.feat.tm[1] +\
@@ -48,7 +48,7 @@ class Rule(object):
         other.lm_right = self.lm_right
 	other.src_len = self.src_len
 	other.dist = self.dist
-	other.lrm = self.lrm
+	other.rm = self.rm
         return other
 
     def getScore(self):
@@ -73,21 +73,25 @@ class Rule(object):
             feats = ['lm:', 'glue:', 'wp:', 'tm:']
 	reorderFeats = []
 	if settings.opts.weight_d != 0:
-		feats.append('d:')
-		reorderFeats.append(self.featVec[8])
+            feats.append('d:')
+            reorderFeats.append(self.featVec[8])
 	if settings.opts.weight_dg != 0:
-		feats.append('dg:')
-		reorderFeats.append(self.featVec[9])
+            feats.append('dg:')
+            reorderFeats.append(self.featVec[9])
 	if settings.opts.weight_r != 0:
-		feats.append('r:')
-		reorderFeats.append(self.featVec[10])
+            feats.append('r:')
+            reorderFeats.append(self.featVec[10])
 	if settings.opts.weight_w != 0:
-		feats.append('wd:')
-		reorderFeats.append(self.featVec[11])
+            feats.append('wd:')
+            reorderFeats.append(self.featVec[11])
 	if settings.opts.weight_h!= 0:
-		feats.append('hd:')
-		reorderFeats.append(self.featVec[12])
-	reorder_str = ' '.join(map(lambda x: str(x), reorderFeats))
+            feats.append('hd:')
+            reorderFeats.append(self.featVec[12])
+	if settings.opts.rm_weight_cnt > 0:
+            feats.append('rm:')
+	    reorderFeats.append(' '.join( map(lambda x: str(x), self.rm[0]) + map(lambda x: str(x), self.rm[1]) ))
+	    
+	reorder_str = ' '.join( map(lambda x: str(x), reorderFeats) )
         tm_str = ' '.join( map(lambda x: str(x), self.featVec[0:5]) )
         if (settings.opts.zmert_nbest):
 	    if (settings.opts.no_glue_penalty):	featLst = [lm_excl_UNK, self.featVec[5], tm_str]+reorderFeats
