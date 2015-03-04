@@ -1,7 +1,12 @@
 ## @author baskaran
 ## revision 1 Maryam Saihbani,    03 Jul 13
+##   adopt Hiero cube pruning (CKY) to LR-Hiero
 ## revision 2 Maryam Saihbani,    01 Dec 13
+##   adding Queue Diversity to cube pruning
 ## revision 3 Maryam Saihbani,    01 Jan 15
+##   faster decoding
+## revision 3 Maryam Saihbani,    01 Mar 15 
+##   adding lexicalized reordering model  ##TODO: it should be removed from here and just change a module for handeling features
 
 import heapq
 from operator import attrgetter
@@ -424,6 +429,7 @@ class Cube(object):
                 score = ent_obj.score
                 fVec = ent_obj.featVec[:]
                 cons_item = ConsequentItem(ent_obj.tgt, ent_obj.tgt_elided, ent_obj.lm_right)
+		hyp = entry_obj
             else:
                 score += ent_obj.score
                 for f_idx,feat_val in enumerate(ent_obj.featVec):
@@ -443,8 +449,13 @@ class Cube(object):
 		    fVec[8] -= dist
 		    score += (-dist)*settings.opts.weight_d
 		# Add lexical reordering model
-		#if settings.opts.rm_weight_cnt > 0:
-		    
+		if settings.opts.rm_weight_cnt > 0:
+		    # left-to-right lexical reordering model from entry_obj.rm (self.lexPosLst compare to hyp.last_phr)
+		    # right-to-left is the postponed feature values for hyp not for the new added phrase entry_obj (self.lexPosLst)
+		    rmFeat, last_phr = combinePhrases(hyp, entry_obj, self.lexPosLst)
+		    for i in range(6):
+			fVec[13+i] += rmFeat[i]
+			score += settings.feat.rm[i] * rmFeat[i]
                 # Add antecedent item to the consequent item
                 cons_item.addAntecedent( ent_obj.tgt_elided, ent_obj.tgt_elided, ent_obj.lm_right )
             dim += 1
@@ -478,7 +489,7 @@ class Cube(object):
 	    entry_obj = None
 	    score += sign.future_cost
 	else:
-            entry_obj = Entry(score, cons_item.tgt, fVec, e_tgt, sign, self.depth_hier, (), entriesLst[1], entriesLst[:], 0.0, out_state)
+            entry_obj = Entry(score, cons_item.tgt, fVec, e_tgt, sign, last_phr, self.depth_hier, (), (entriesLst[1], self.lexPosLst), entriesLst[:], 0.0, out_state)
             score = entry_obj.score + entry_obj.getFutureScore()
         return (score, entry_obj)
 
@@ -668,3 +679,33 @@ class ConsequentItem(object):
             self.r_lm_state = self.anteItems[0][2]
         elif self.edgeTup[1] == 2:
             self.r_lm_state = self.anteItems[1][2]
+
+def combinePhrases(hyp, rule, lexPosLst):
+    '''Compute left-to-right lexicalized reodering model for the new hypothesis (developed from hyp using rule),
+       compute new last phrase for the new hypothesis and
+       compute right-to-left lexicalized reodering model for the last phrases added in hyp'''
+    
+    (pre_rule, pre_phr_pos) = Entry.getInfRule(hyp)
+    # left-to-right
+    if lexPosLst[0] == hyp.last_phr[-1]+1:
+	l2r = [rule.rm[0][0], 0.0, 0.0]
+	last_phr = hyp.last_phr+lexPosLst
+    elif hyp.last_phr[0] < lexPosLst[0] and lexPosLst[-1] < hyp.last_phr[-1]:
+	if lexPosLst[0]-1 in hyp.last_phr or lexPosLst[-1]+1 in hyp.last_phr:
+	    l2r = [rule.rm[0][0], 0.0, 0.0]
+	    last_phr = sorted(hyp.last_phr+lexPosLst)
+	#elif lexPosLst[-1]+1 in hyp.last_phr:
+	#    l2r = [0.0, rule.rm[0][1], 0.0]
+	#    last_phr = sorted(hyp.last_phr+lexPosLst)
+	else:
+	    l2r = [0.0, 0.0, rule.rm[0][2]]
+	    last_phr = lexPosLst
+    elif lexPosLst[-1] == hyp.last_phr[0]-1:
+	l2r = [0.0, rule.rm[0][1], 0.0]
+	
+	last_phr = lexPosLst+hyp.last_phr	
+    else:
+	l2r = [0.0, 0.0, rule.rm[0][2]]
+	last_phr = lexPosLst
+    
+    # right-to-left

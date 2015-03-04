@@ -10,15 +10,15 @@ from lmSRILM import SRILangModel
 class Entry(object):
     '''Individual entries in the cells of the parse triangle'''
 
-    __slots__ = "score", "tgt", "featVec", "tgt_elided", "depth_hier", "inf_cell", "inf_entry", "bp", "cand_score", "lm_right", "sign", "prev_phr"
+    __slots__ = "score", "tgt", "featVec", "tgt_elided", "depth_hier", "inf_cell", "inf_rule", "bp", "cand_score", "lm_right", "sign", "last_phr"
  
-    def __init__(self, score, tgt, featVec, tgt_elided, sign=None, pre_phr=None, rule_depth=0, inf_cell=(), inf_entry=None, bp=(), cand_score=0.0, r_lm_state=None):
+    def __init__(self, score, tgt, featVec, tgt_elided, sign=None, last_phr=None, rule_depth=0, inf_cell=(), inf_rule=None, bp=None, cand_score=0.0, r_lm_state=None):
         self.score = score
         self.tgt = tgt
         self.featVec = featVec[:]
 	self.tgt_elided = tgt_elided
 	self.sign = sign
-	self.prev_phr = pre_phr
+	self.last_phr = last_phr
         self.depth_hier = rule_depth
         self.inf_cell = inf_cell
         self.inf_entry = inf_entry                                      # Entry object for the consequent entry
@@ -34,7 +34,7 @@ class Entry(object):
         other.tgt = self.tgt
 	other.tgt_elided = self.tgt_elided
         other.featVec = self.featVec[:]
-	other.prev_phr = self.prev_phr
+	other.last_phr = self.last_phr
         other.depth_hier = self.depth_hier
         other.inf_entry = None
         other.bp = ()
@@ -49,8 +49,8 @@ class Entry(object):
     def getInfCell(self):
         return self.inf_cell
 
-    def getInfEntry(self):
-        return self.inf_entry
+    def getInfRule(self):
+        return self.inf_rule
 
     def getSign(self):
 	return self.sign
@@ -133,8 +133,8 @@ class Entry(object):
     def getHeuScore(self):
 	'''Get the heuristic cost for terminal rules to compute future cost'''
 	if self.tm4_score is None:
-		self.tm4_score = self.featVec[0] * settings.feat.tm[0] + self.featVec[1] * settings.feat.tm[1] +\
-			self.featVec[2] * settings.feat.tm[2] + self.featVec[3] * settings.feat.tm[3]
+	    self.tm4_score = self.featVec[0] * settings.feat.tm[0] + self.featVec[1] * settings.feat.tm[1] +\
+	        self.featVec[2] * settings.feat.tm[2] + self.featVec[3] * settings.feat.tm[3]
 	return self.tm4_score + self.lm_heu
 	#return self.score - (wvec_wp * self.featVec[5]) + self.lm_heu
 	    
@@ -156,16 +156,16 @@ class Entry(object):
     def printIt(self):
         '''Print the entry (for debugging purposes)'''
 
-        print "Score           :", self.score
-        print "LM Heu          :", self.lm_heu
-        print "Target          :", self.tgt
-        print "Elided          :", self.tgt_elided
-        print "Feat-vec        :", self.featVec
-	print "previous phr    :", self.prev_phr
-        print "Bpointer        :", self.bp[0]
-        print "Parent rule     :", self.bp[1]
+        print "Score                 :", self.score
+        print "LM Heu                :", self.lm_heu
+        print "Target                :", self.tgt
+        print "Elided                :", self.tgt_elided
+        print "Feat-vec              :", self.featVec
+	print "last phr positions    :", self.last_phr
+        print "Bpointer              :", self.bp[0]
+        print "Parent rule           :", self.bp[1]
 	unc_span_str = ",".join([str(t) for t in self.unc_spans])
-        print "uncovered spans :", unc_span_str
+        print "uncovered spans       :", unc_span_str
 	
 
 def getInitHyp(sent_len):

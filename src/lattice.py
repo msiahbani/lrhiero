@@ -189,8 +189,8 @@ class Lattice(object):
                     spans.append(span)
 		    # compute lexical postions for lexical terms of src_rule
 		    if settings.opts.rm_weight_cnt > 0: gapPos += set(range(span[0],span[1]))		    
-		if settings.opts.rm_weight_cnt > 0:  Lattice.spanToRuleDict[(i,j)][rule] = (spans, set(range(i,j)) - gapPos) #span is a list, posLex is a set
-                else:                                Lattice.spanToRuleDict[(i,j)][rule] = (spans, gapPos) 
+		if settings.opts.rm_weight_cnt > 0:  Lattice.spanToRuleDict[(i,j)][rule] = ( spans, sorted(set(range(i,j)) - gapPos) ) #span is a list, posLex is a set
+                else:                                Lattice.spanToRuleDict[(i,j)][rule] = ( spans, gapPos )
 	
     def matchRule(self, (start, end)):
         if (start, end) in Lattice.ruleLookUpTable: return
