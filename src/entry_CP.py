@@ -12,7 +12,7 @@ class Entry(object):
 
     __slots__ = "score", "tgt", "featVec", "tgt_elided", "depth_hier", "inf_cell", "inf_rule", "bp", "cand_score", "lm_right", "sign", "last_phr"
  
-    def __init__(self, score, tgt, featVec, tgt_elided, sign=None, last_phr=None, rule_depth=0, inf_cell=(), inf_rule=None, bp=None, cand_score=0.0, r_lm_state=None):
+    def __init__(self, score, tgt, featVec, tgt_elided, sign=None, last_phr=None, rule_depth=0, inf_cell=(), inf_rule=(None, None), bp=None, cand_score=0.0, r_lm_state=None):
         self.score = score
         self.tgt = tgt
         self.featVec = featVec[:]
@@ -45,7 +45,10 @@ class Entry(object):
 
     def setInfCell(self, span):
         self.inf_cell = span
-
+    
+    def setInfRule(slef, (rule, pos_lst)):
+	self.inf_rule = (rule, pos_lst)
+	
     def getInfCell(self):
         return self.inf_cell
 
@@ -169,4 +172,6 @@ class Entry(object):
 	
 
 def getInitHyp(sent_len):
-	return Entry(0, "<s>",[0 for i in settings.opts.U_lpTup[2]], "<s>", defaultSign(sent_len)) 
+	init_hyp = Entry(0, "<s>",[0 for i in settings.opts.U_lpTup[2]], "<s>", defaultSign(sent_len)) 
+	init_hyp.setInfRule((None, [-1]))
+	return init_hyp

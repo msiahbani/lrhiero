@@ -687,25 +687,32 @@ def combinePhrases(hyp, rule, lexPosLst):
     
     (pre_rule, pre_phr_pos) = Entry.getInfRule(hyp)
     # left-to-right
-    if lexPosLst[0] == hyp.last_phr[-1]+1:
+    if lexPosLst[0] == pre_phr_pos[-1]+1:                                          # Monotone
 	l2r = [rule.rm[0][0], 0.0, 0.0]
-	last_phr = hyp.last_phr+lexPosLst
-    elif hyp.last_phr[0] < lexPosLst[0] and lexPosLst[-1] < hyp.last_phr[-1]:
-	if lexPosLst[0]-1 in hyp.last_phr or lexPosLst[-1]+1 in hyp.last_phr:
-	    l2r = [rule.rm[0][0], 0.0, 0.0]
-	    last_phr = sorted(hyp.last_phr+lexPosLst)
-	#elif lexPosLst[-1]+1 in hyp.last_phr:
-	#    l2r = [0.0, rule.rm[0][1], 0.0]
-	#    last_phr = sorted(hyp.last_phr+lexPosLst)
-	else:
-	    l2r = [0.0, 0.0, rule.rm[0][2]]
-	    last_phr = lexPosLst
-    elif lexPosLst[-1] == hyp.last_phr[0]-1:
+	last_phr = sorted(set(hyp.last_phr+lexPosLst))
+	# if there is a gap in last_phr which is far away from end of last_phr, crop it
+	#ind0 = max(0,last_phr[-1]-settings.opts.max_phr_len-last_phr[0])
+	#val0 = max(last_phr[0],last_phr[-1]-settings.opts.max_phr_len)
+	#if last_phr[ind0] != val0:	last_phr = last_phr[ind0:]
+    elif hyp.last_phr and lexPosLst[0] == hyp.last_phr[-1]+1:                     # Monotone (last_phr might be discountinuous)
+	l2r = [rule.rm[0][0], 0.0, 0.0]
+	last_phr = sorted(set(hyp.last_phr+lexPosLst))
+	# if there is a gap in last_phr which is far away from end of last_phr, crop it
+	#ind0 = max(0,lexPosLst[-1]-settings.opts.max_phr_len-hyp.last_phr[0])
+	#val0 = max(hyp.last_phr[0],lexPosLst[-1]-settings.opts.max_phr_len)
+	#if hyp.last_phr[ind0] == val0:	last_phr = hyp.last_phr+lexPosLst
+	#else:                           last_phr = hyp.last_phr[ind0:]+lexPosLst
+    elif lexPosLst[-1] == pre_phr_pos[0]-1:                                       # Swap
 	l2r = [0.0, rule.rm[0][1], 0.0]
-	
-	last_phr = lexPosLst+hyp.last_phr	
+	last_phr = sorted(set(lexPosLst+hyp.last_phr))
+    elif hyp.last_phr and lexPosLst[-1] == hyp.last_phr[0]-1:                     # Swap (last_phr might be discountinuous)
+	l2r = [0.0, rule.rm[0][1], 0.0]
+	last_phr = sorted(set(lexPosLst+hyp.last_phr))
     else:
 	l2r = [0.0, 0.0, rule.rm[0][2]]
-	last_phr = lexPosLst
+	if hyp.last_phr and hyp.last_phr[0] <= lexPosLst[0] and lexPosLst[-1] <= hyp.last_phr[-1]:
+	    last_phr = sorted(set(lexPosLst+hyp.last_phr))
+	else:
+	    last_phr = lexPosLst
     
     # right-to-left
