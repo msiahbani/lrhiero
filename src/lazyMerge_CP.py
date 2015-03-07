@@ -689,14 +689,15 @@ def combinePhrases(hyp, rule, lexPosLst):
     # @type hyp Entry
     # @type pre_rule, rule Rule
     (pre_rule, pre_phr_pos) = Entry.getInfRule(hyp)
+    updatePrePhr = False
     # left-to-right
     if lexPosLst[0] == pre_phr_pos[-1]+1:                                          # Monotone
 	rmFeat[0] = rule.rm[0][0]
-	last_phr = hyp.last_phr+lexPosLst
-	# if there is a gap in last_phr which is far away from end of last_phr, crop it
+	last_phr = sorted(set(hyp.last_phr+lexPosLst))
+	# if there is a gap in last_phr which is far away from e/indnd of last_phr, crop it
 	ind0 = max(0,last_phr[-1]-settings.opts.max_phr_len-last_phr[0])
 	val0 = max(last_phr[0],last_phr[-1]-settings.opts.max_phr_len)
-	if last_phr[ind0] != val0:	last_phr = last_phr[ind0+1:]
+	if last_phr[ind0] != val0:	last_phr = last_phr[ind0:]
     elif hyp.last_phr and lexPosLst[0] == hyp.last_phr[-1]+1:                     # Monotone (last_phr might be discountinuous)
 	rmFeat[0] = rule.rm[0][0]
 	#last_phr = sorted(set(hyp.last_phr+lexPosLst))
@@ -704,7 +705,7 @@ def combinePhrases(hyp, rule, lexPosLst):
 	ind0 = max(0,lexPosLst[-1]-settings.opts.max_phr_len-hyp.last_phr[0])
 	val0 = max(hyp.last_phr[0],lexPosLst[-1]-settings.opts.max_phr_len)
 	if hyp.last_phr[ind0] == val0:	last_phr = hyp.last_phr+lexPosLst
-	else:                           last_phr = hyp.last_phr[ind0+1:]+lexPosLst
+	else:                           last_phr = hyp.last_phr[ind0:]+lexPosLst
     elif lexPosLst[-1] == pre_phr_pos[0]-1:                                       # Swap
 	rmFeat[1] = rule.rm[0][1]
 	last_phr = sorted(set(lexPosLst+hyp.last_phr))
@@ -724,7 +725,7 @@ def combinePhrases(hyp, rule, lexPosLst):
     # right-to-left
     if lexPosLst[0] == pre_phr_pos[-1]+1:                                         # Monotone
 	rmFeat[3] = pre_rule.rm[1][0]
-    elif lexPosLst[0] == pre_phr_pos[-1]+1:                                       # Swap
+    elif lexPosLst[-1] == pre_phr_pos[0]-1:                                       # Swap
 	rmFeat[4] = pre_rule.rm[1][1]
     else:
 	rmFeat[5] = pre_rule.rm[1][2]
