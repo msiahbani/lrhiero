@@ -156,7 +156,8 @@ def args():
         opts.rm_weight_cnt = 0
         feat.rm = None
     feat.wp = opts.weight_wp
-    additionalFeat = [0.0, 0.0, 0.0, 0.0, 0.0]
+    additionalFeat = [0.0, 0.0, 0.0, 0.0, 0.0, \
+                      0.0, 0.0, 0.0, 0.0, 0.0, 0.0]      # lexicalized reordering model
     feat.d = opts.weight_d 
     feat.dg = opts.weight_dg 
     feat.r = opts.weight_r 

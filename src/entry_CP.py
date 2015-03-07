@@ -171,7 +171,7 @@ class Entry(object):
         print "uncovered spans       :", unc_span_str
 	
 
-def getInitHyp(sent_len):
+def getInitHyp(sent_len, initRule):
 	init_hyp = Entry(0, "<s>",[0 for i in settings.opts.U_lpTup[2]], "<s>", defaultSign(sent_len)) 
-	init_hyp.setInfRule((None, [-1]))
+	init_hyp.setInfRule((initRule, [-1]))
 	return init_hyp
