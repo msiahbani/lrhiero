@@ -18,7 +18,7 @@ class Rule(object):
         self.featVec = featVec[:]
 	self.tgt_elided = tgt_elided
         self.lm_right = r_lm_state
-        if settings.opts.rm_weight_cnt > 0: self.rm = [(0.0,0.0,0.0), (0.0,0.0,0.0)]  #TODO: read p(o) from config file
+        if settings.opts.rm_weight_cnt > 0: self.rm = settings.opts.default_rm
         else: self.rm = None
 	
     def completeInfo(self):

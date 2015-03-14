@@ -55,10 +55,10 @@ my $default_triples = {
     "wp" => [ [-1.0,-2.0, 0.0] ],     # word penalty
     "glue" => [ [ 1.0, 0.0, 2.0 ] ],  # glue rules
     "d" => [ [ 1.0, -1.0, 2.0 ] ],  # distortion
-    "dg" => [ [ 1.0, -1.0, 2.0 ] ],  # distortion
-    "wd" => [ [ 1.0, -1.0, 2.0 ] ],  # distortion
-    "hd" => [ [ 1.0, -1.0, 2.0 ] ],  # distortion
-    "r" => [ [ 1.0, -1.0, 2.0 ] ],  # distortion
+    "dg" => [ [ 1.0, -1.0, 2.0 ] ],  # glue distortion
+    "wd" => [ [ 1.0, -1.0, 2.0 ] ],  # width
+    "hd" => [ [ 1.0, -1.0, 2.0 ] ],  # height
+    "r" => [ [ 1.0, -1.0, 2.0 ] ],  # rule reordering
 };
 
 my $additional_triples = {
@@ -70,11 +70,17 @@ my $additional_triples = {
               [ 0.4, 0.0, 1.0 ],
               [ 1.0,-1.0, 2.0 ] ],    # phrase penalty
     "lm" => [ [ 1.0, 0.0, 2.0 ] ],    # language model
+    "tm" => [ [ 0.6, 0.0, 1.0 ],      # reordering model
+              [ 0.6, 0.0, 1.0 ],
+              [ 0.6, 0.0, 1.0 ],
+              [ 0.6, 0.0, 1.0 ],
+              [ 0.6, 0.0, 1.0 ],
+              [ 0.6, 0.0, 1.0 ] ],    
 };
 
 # moses.ini file uses FULL names for lambdas, while this training script internally (and on the command line)
 # uses ABBR names.
-my $ABBR_FULL_MAP = "lm=weight_lm tm=weight_tm wp=weight_wp glue=weight_glue d=weight_d dg=weight_dg wd=weight_wd hd=weight_hd r=weight_r";
+my $ABBR_FULL_MAP = "lm=weight_lm tm=weight_tm wp=weight_wp glue=weight_glue d=weight_d dg=weight_dg wd=weight_wd hd=weight_hd r=weight_r rm=weight_rm";
 my %ABBR2FULL = map {split/=/,$_,2} split /\s+/, $ABBR_FULL_MAP;
 my %FULL2ABBR = map {my ($a, $b) = split/=/,$_,2; ($b, $a);} split /\s+/, $ABBR_FULL_MAP;
 

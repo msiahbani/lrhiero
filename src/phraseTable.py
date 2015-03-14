@@ -38,7 +38,7 @@ class PhraseTable(object):
 
         tm_wgts_str = ' '.join( [str(x) for x in self.wVec.tm] )
 	reorder_wgts_str = "d:"+str(self.wVec.d)+" dg:"+str(self.wVec.dg)+" r:"+str(self.wVec.r)+" w:"+str(self.wVec.w)+" h:"+str(self.wVec.h)
-        rm_wgts_str = '['+' '.join( [str(x) for x in self.wVec.rm] )+']' if self.wVec.rm else ''
+        rm_wgts_str = 'rm:['+' '.join( [str(x) for x in self.wVec.rm] )+']' if self.wVec.rm else ''
         sys.stderr.write( "Weights are : [%s] %g %g %g %s %s\n" % (tm_wgts_str, self.wVec.wp, self.wVec.glue, self.wVec.lm, reorder_wgts_str, rm_wgts_str) )
         
         self.loadReorderingModel()
@@ -63,8 +63,11 @@ class PhraseTable(object):
         with open(settings.opts.rmFile, 'r') as rF:
             for line in rF:
                 line = line.strip()
-                (src, tgt, l2r, r2l) = line.split(' ||| ')[0:4]                       # For Kriya phrase table
+                try:                (src, tgt, l2r, r2l) = line.split(' ||| ')                       # For Kriya phrase table
 #                (src, tgt, f_align, r_align, probs) = line.split(' ||| ')     # For Moses phrase table
+                except:
+                    print line
+                    exit(0)
 		src = src.strip()
 		tgt = tgt.strip()
                 l2r_v = [float(p) for p in l2r.strip().split()] 
@@ -133,7 +136,13 @@ class PhraseTable(object):
                         # compute lexicalized reordering model features
                         if settings.opts.rm_weight_cnt > 0:
                             phr = self.convertRule2Phr((prev_src, entry_obj.tgt))
-                            entry_obj.rm = self.rmDict[phr[0]][phr[1]]
+                            try: entry_obj.rm = self.rmDict[phr[0]][phr[1]]
+                            except:
+                                print (prev_src, entry_obj.tgt)
+                                print phr
+                                print len(self.rmDict)
+                                print self.rmDict[phr[0]]
+                                exit(0)
 			PhraseTable.ruleDict[prev_src].append( entry_obj )
                         tgt_options += 1
                         if(self.ttl > 0 and tgt_options >= self.ttl): break

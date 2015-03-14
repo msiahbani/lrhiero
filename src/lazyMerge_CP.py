@@ -25,6 +25,7 @@ class Lazy(object):
     wvec_lm = None
     cell_type = None
     is_last_cell = None
+    beam_indx = None
     refsLst = []
     hypScoreDict = {}
     __slots__ = "cubeDict", "bsize", "coverageHeap", "coverageDict", "cbp_diversity", "cbp_heap_diversity"
@@ -38,6 +39,7 @@ class Lazy(object):
         self.bsize = settings.opts.cbp + 10 if settings.opts.cbp > 0 else float('inf')
 
         # set class attributes
+	Lazy.beam_indx = c_span
         Lazy.sent_id = sent_indx
         Lazy.wvec_lm = settings.feat.lm
         Lazy.is_last_cell = final_cell
@@ -429,7 +431,7 @@ class Cube(object):
                 score = ent_obj.score
                 fVec = ent_obj.featVec[:]
                 cons_item = ConsequentItem(ent_obj.tgt, ent_obj.tgt_elided, ent_obj.lm_right)
-		hyp = entry_obj
+		hyp = ent_obj
             else:
                 score += ent_obj.score
                 for f_idx,feat_val in enumerate(ent_obj.featVec):
@@ -450,9 +452,10 @@ class Cube(object):
 		    score += (-dist)*settings.opts.weight_d
 		# Add lexical reordering model
 		if settings.opts.rm_weight_cnt > 0:
-		    # left-to-right lexical reordering model from entry_obj.rm (self.lexPosLst compare to hyp.last_phr)
-		    # right-to-left is the postponed feature values for hyp not for the new added phrase entry_obj (self.lexPosLst)
-		    rmFeat, last_phr = combinePhrases(hyp, entry_obj, self.lexPosLst)
+		    # left-to-right lexical reordering model from ent_obj.rm (self.lexPosLst compare to hyp.last_phr)
+		    # right-to-left is the postponed feature values for hyp not for the new added phrase ent_obj (self.lexPosLst)
+		    if Lazy.is_last_cell: rmFeat, last_phr = combinePhrases(hyp, ent_obj, self.lexPosLst, Lazy.beam_indx)
+		    else:                 rmFeat, last_phr = combinePhrases(hyp, ent_obj, self.lexPosLst)
 		    for i in range(6):
 			fVec[13+i] += rmFeat[i]
 			score += settings.feat.rm[i] * rmFeat[i]
@@ -680,7 +683,7 @@ class ConsequentItem(object):
         elif self.edgeTup[1] == 2:
             self.r_lm_state = self.anteItems[1][2]
 
-def combinePhrases(hyp, rule, lexPosLst):
+def combinePhrases(hyp, rule, lexPosLst, beam_indx=-1):
     '''Compute left-to-right lexicalized reodering model for the new hypothesis (developed from hyp using rule),
        compute new last phrase for the new hypothesis and
        compute right-to-left lexicalized reodering model for the last phrases added in hyp'''
@@ -693,7 +696,8 @@ def combinePhrases(hyp, rule, lexPosLst):
     # left-to-right
     if lexPosLst[0] == pre_phr_pos[-1]+1:                                          # Monotone
 	rmFeat[0] = rule.rm[0][0]
-	last_phr = sorted(set(hyp.last_phr+lexPosLst))
+        if hyp.last_phr: last_phr = sorted(set(hyp.last_phr+lexPosLst))
+        else: last_phr = lexPosLst[:]
 	# if there is a gap in last_phr which is far away from e/indnd of last_phr, crop it
 	ind0 = max(0,last_phr[-1]-settings.opts.max_phr_len-last_phr[0])
 	val0 = max(last_phr[0],last_phr[-1]-settings.opts.max_phr_len)
@@ -729,5 +733,10 @@ def combinePhrases(hyp, rule, lexPosLst):
 	rmFeat[4] = pre_rule.rm[1][1]
     else:
 	rmFeat[5] = pre_rule.rm[1][2]
-    
+	
+    # adding </s>   ##TODO: Should we add left-to-right lrm for end of sentence symbol?
+    if beam_indx > 0:
+	if lexPosLst[-1] == beam_indx-1:
+            rmFeat[3] += rule.rm[1][0]
+	else: rmFeat[5] += rule.rm[1][2]
     return rmFeat, last_phr

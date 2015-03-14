@@ -21,7 +21,7 @@ class Entry(object):
 	self.last_phr = last_phr
         self.depth_hier = rule_depth
         self.inf_cell = inf_cell
-        self.inf_entry = inf_entry                                      # Entry object for the consequent entry
+        self.inf_rule = inf_rule                                        # rule which generated this hyp
         self.bp = bp                                                    # List of entry objects of the antecedents
         self.cand_score = cand_score
         self.lm_right = r_lm_state
@@ -46,7 +46,7 @@ class Entry(object):
     def setInfCell(self, span):
         self.inf_cell = span
     
-    def setInfRule(slef, (rule, pos_lst)):
+    def setInfRule(self, (rule, pos_lst)):
 	self.inf_rule = (rule, pos_lst)
 	
     def getInfCell(self):

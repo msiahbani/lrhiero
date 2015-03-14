@@ -57,6 +57,7 @@ def args():
     optparser.add_option("", "--lm", dest="weight_lm", default=1.0, type="float", help="Language model weight")
     optparser.add_option("", "--tm", dest="weight_tm", type="string", help="Translation model weights as a string")
     optparser.add_option("", "--rm", dest="weight_rm", type="string", help="Reordering model weights as a string")
+    optparser.add_option("", "--def-rm", dest="default_rm", type="string", help="Default values for reordering features as a string")
     optparser.add_option("", "--tmf", dest="weight_tmf", default=1.0, type="float", help="Forward trans model weight")
     optparser.add_option("", "--tmr", dest="weight_tmr", default=1.0, type="float", help="Reverse trans model weight")
     optparser.add_option("", "--lwf", dest="weight_lwf", default=0.5, type="float", help="Forward lexical trans weight")
@@ -155,6 +156,13 @@ def args():
     else:
         opts.rm_weight_cnt = 0
         feat.rm = None
+
+    if opts.default_rm:
+        opts.default_rm = map( lambda x: float(x), opts.default_rm.split(' ') )
+        opts.default_rm = [opts.default_rm[:3], opts.default_rm[3:]]
+    else:
+        opts.default_rm = [(-1.5, -2.2, -0.3), (-1.5, -2.2, -0.3)]
+
     feat.wp = opts.weight_wp
     additionalFeat = [0.0, 0.0, 0.0, 0.0, 0.0, \
                       0.0, 0.0, 0.0, 0.0, 0.0, 0.0]      # lexicalized reordering model
@@ -233,6 +241,7 @@ def loadConfig():
     parameter_line = ''
     tmLst = []
     rmLst = []
+    rmDefLst = []
     line_cnt = 0
     cF = open(opts.configFile, 'r')
     for line in cF:
@@ -331,12 +340,16 @@ def loadConfig():
                 tmLst.append( line )
             elif parameter_line == "[weight_rm]":
                 rmLst.append( line )
+            elif parameter_line == "[lrm-default]":
+                rmDefLst.append( line )
 
     cF.close()
     if tmLst:
         opts.weight_tm = ' '.join( tmLst )
     if rmLst:
         opts.weight_rm = ' '.join( rmLst )
+    if rmDefLst:
+        opts.default_rm = ' '.join( rmDefLst )
 
 def copyModels():
     """ Copies the model files to the local path.
