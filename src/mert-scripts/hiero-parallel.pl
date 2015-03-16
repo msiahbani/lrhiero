@@ -4,6 +4,7 @@
 #######################
 # Revision history
 #
+# 14 March 2015 modified for lrhiero by Maryam Siahbani
 # 01 May 2009 modified for hiero by Baskaran Sankaran
 # 02 Aug 2006 added strict requirement
 # 01 Aug 2006 fix bug about inputfile parameter
@@ -56,7 +57,9 @@ my $kriya_opts="";
 my $inputdir=undef;
 my $outputdir=undef;
 my $ruledir=undef;
+my $rmdir=undef;
 my $ttable = undef;
+my $rmfile = undef;
 my $lm_file=undef;
 my @nbestlist=();
 my $nbestlist=undef;
@@ -103,7 +106,9 @@ sub init(){
 	       'i|inputdir|input-dir=s'=> \$inputdir,
 	       'output-dir=s' => \$outputdir,
 	       'rule-dir=s' => \$ruledir,
+	       'rm-dir=s' => \$rmdir,
 	       'ttable-file=s' => \$ttable,
+	       'rm-file=s' => \$rmfile,
 	       'lmfile=s' => \$lm_file,
 	       'n-best-list=s'=> \$nbestlist,
 	       'n-best-file=s'=> \$oldnbestfile,
@@ -157,6 +162,7 @@ sub usage(){
     print STDERR "*  -i|inputdir|input-dir <dir>   directory having the input files to translate\n";
     print STDERR "*  -output-dir <dir> directory for writing the output files\n";
     print STDERR "*  -rule-dir <dir>   directory having the SCFG rule files corresponding to the input files\n";
+    print STDERR "*  -rm-dir <dir>   directory having the reordering model files corresponding to the input files\n";
     print STDERR "*  -lmfile <file>   LM file to be used for decoding";
     print STDERR "*  -jobs <N> number of required jobs\n";
     print STDERR "   -logfile <file> file where storing log files of all jobs\n";
@@ -194,6 +200,8 @@ sub print_parameters(){
     print STDERR "Input directory: $inputdir\n";
     print STDERR "Rule directory: $ruledir\n" if (defined $ruledir);
     print STDERR "T-table file: $ttable\n" if (defined $ttable);
+    print STDERR "Reordering Model directory: $rmdir\n" if (defined $rmdir);
+    print STDERR "Reordering Model file: $rmfile\n" if (defined $rmfile);
     print STDERR "Output directory: $outputdir\n";
     print STDERR "LM file: $lm_file\n";
     print STDERR "Configuration file: $cfgfile\n";
@@ -515,6 +523,7 @@ sub wait_for_completion() {
 sub preparing_script(){
     foreach my $idx (@idxlist){
 	my $scriptheader="\#\! /bin/tcsh\n\n";
+        my $rm_file = undef;
 	$scriptheader.="uname -a\n\n";
 	$scriptheader.="cd $workingdir\n\n";
 
@@ -524,6 +533,12 @@ sub preparing_script(){
 	}
 	elsif (defined $ttable) {
 	    $rule_file = $ttable;
+	}
+	if (defined $rmdir) {
+	    $rm_file = $rmdir."/".$idx.".out";
+	}
+	elsif (defined $rmfile) {
+	    $rm_file = $rmfile;
 	}
 	$out_file = $tmpdir."/".$idx.".out";
 
@@ -537,8 +552,12 @@ sub preparing_script(){
 	my $sent_indx = $idx - 1;
 	## ********* ONLY FOR DEBUGGING ********* ##
 	#print OUT "$decoder_prefix $mosescmd $out_file > $tmpdir/run_$idx.out\n\n";
-
-	print OUT "$decoder_prefix $mosescmd $mosesparameters $kriya_opts --index $sent_indx --inputfile $in_file --outputfile $out_file --ttable-file $rule_file --lmodel-file $lm_file >& $tmpdir/run_$idx.out\n\n";
+        if (defined $rm_file) {
+            print OUT "$decoder_prefix $mosescmd $mosesparameters $kriya_opts --index $sent_indx --inputfile $in_file --outputfile $out_file --ttable-file $rule_file --rm-file $rm_file --lmodel-file $lm_file >& $tmpdir/run_$idx.out\n\n";
+        }
+        else{
+            print OUT "$decoder_prefix $mosescmd $mosesparameters $kriya_opts --index $sent_indx --inputfile $in_file --outputfile $out_file --ttable-file $rule_file --lmodel-file $lm_file >& $tmpdir/run_$idx.out\n\n";
+        }
 	print OUT "echo exit status \$\?\n\n";
 
  	##print OUT "module unload LANG/PYTHON/2.6.2\n\n";

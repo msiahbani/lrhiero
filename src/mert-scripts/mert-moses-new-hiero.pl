@@ -11,6 +11,7 @@
 
 # Revision history
 
+# March 2015    Modified by Maryam Siahbani for use lrhiero decoder (adding lexicalized reordering model files)
 # Apr 2009    Modified by Baskaran Sankaran for use with home-grown (SFU) Hierarchical MT decoder
 # 5 Jun 2008  Forked previous version to support new mert implementation.
 # 13 Feb 2007 Better handling of default values for lambda, now works with multiple
@@ -106,6 +107,7 @@ my $___DEV_F = undef; # required, input text to decode
 my $___DEV_E = undef; # required, basename of files with references
 my $___GLUE_RULES = undef; # required, file having Glue rules
 my $___SCFG_RULES = undef; # required, basename of the directory having the SCFG rule files
+my $___RM_RULES = undef; # optional, basename of the directory having the reordering model files
 my $___DECODER = undef; # required, pathname to the decoder executable
 my $___CONFIG = undef; # required, pathname to startup ini file
 my $___LM_FILE = undef; # required, LM file (w/ absolute path)
@@ -172,6 +174,7 @@ GetOptions(
   "input=s" => \$___DEV_F,
   "gluefile=s" => \$___GLUE_RULES,
   "scfgpath=s" => \$___SCFG_RULES,
+  "rmpath=s" => \$___RM_RULES,
   "inputtype=i" => \$___INPUTTYPE,
   "refs=s" => \$___DEV_E,
   "decoder=s" => \$___DECODER,
@@ -353,6 +356,12 @@ my $scfg_abs = ensure_full_path($___SCFG_RULES);
 die "Directory not found: $___SCFG_RULES (interpreted as $scfg_abs)."
   if ! -e $scfg_abs;
 $___SCFG_RULES = $scfg_abs;
+
+# check if RM files exist
+my $rm_abs = ensure_full_path($___RM_RULES);
+#die "Directory not found: $___SCFG_RULES (interpreted as $scfg_abs)."
+#  if ! -e $scfg_abs;
+$___RM_RULES = $rm_abs;
 
 
 # set start run
@@ -827,10 +836,10 @@ sub run_decoder {
 
     if (defined $___JOBS) {
         if ( -f $___SCFG_RULES ) {              # For specifying the ttable-file directly
-	        $decoder_cmd = "$moses_parallel_cmd $pass_old_sge -config $___CONFIG -kriya-options \"$kriya_opts\" -qsub-prefix mert$run -queue-parameters \"$queue_flags\" -mert-status $mert_status -prev-jobid $prev_jobid -n-best-list $filename -n-best-size $___N_BEST_LIST_SIZE -input-dir $___DEV_F -output-dir $___WORKING_DIR --ttable-file $___SCFG_RULES --lmfile $___LM_FILE -jobs $___JOBS -decoder-prefix $___DECODER_PREFIX -decoder $___DECODER -nodes-prop \"$nodes_prop\" > run$run.out";
+	        $decoder_cmd = "$moses_parallel_cmd $pass_old_sge -config $___CONFIG -kriya-options \"$kriya_opts\" -qsub-prefix mert$run -queue-parameters \"$queue_flags\" -mert-status $mert_status -prev-jobid $prev_jobid -n-best-list $filename -n-best-size $___N_BEST_LIST_SIZE -input-dir $___DEV_F -output-dir $___WORKING_DIR --ttable-file $___SCFG_RULES --rm-file $___RM_RULES --lmfile $___LM_FILE -jobs $___JOBS -decoder-prefix $___DECODER_PREFIX -decoder $___DECODER -nodes-prop \"$nodes_prop\" > run$run.out";
         }
         elsif ( -d $___SCFG_RULES ) {           # For specifying the rule-dir having the ttable-files
-	        $decoder_cmd = "$moses_parallel_cmd $pass_old_sge -config $___CONFIG -kriya-options \"$kriya_opts\" -qsub-prefix mert$run -queue-parameters \"$queue_flags\" -mert-status $mert_status -prev-jobid $prev_jobid -n-best-list $filename -n-best-size $___N_BEST_LIST_SIZE -input-dir $___DEV_F -output-dir $___WORKING_DIR -rule-dir $___SCFG_RULES --lmfile $___LM_FILE -jobs $___JOBS -decoder-prefix $___DECODER_PREFIX -decoder $___DECODER -nodes-prop \"$nodes_prop\" > run$run.out";
+	        $decoder_cmd = "$moses_parallel_cmd $pass_old_sge -config $___CONFIG -kriya-options \"$kriya_opts\" -qsub-prefix mert$run -queue-parameters \"$queue_flags\" -mert-status $mert_status -prev-jobid $prev_jobid -n-best-list $filename -n-best-size $___N_BEST_LIST_SIZE -input-dir $___DEV_F -output-dir $___WORKING_DIR -rule-dir $___SCFG_RULES -rm-dir $___RM_RULES --lmfile $___LM_FILE -jobs $___JOBS -decoder-prefix $___DECODER_PREFIX -decoder $___DECODER -nodes-prop \"$nodes_prop\" > run$run.out";
 
             #$decoder_cmd = "$moses_parallel_cmd $pass_old_sge -config $___CONFIG -kriya-options \"$kriya_opts\" -qsub-prefix mert$run -queue-parameters \"$queue_flags\" -decoder-parameters \"$parameters $decoder_config\" -mert-status $mert_status -prev-jobid $prev_jobid -n-best-list $filename -n-best-size $___N_BEST_LIST_SIZE -input-dir $___DEV_F -output-dir $___WORKING_DIR -rule-dir $___SCFG_RULES --lmfile $___LM_FILE -jobs $___JOBS -decoder-prefix $___DECODER_PREFIX -decoder $___DECODER -nodes-prop \"$nodes_prop\" > run$run.out";
         }
@@ -838,9 +847,10 @@ sub run_decoder {
       my $sentIndex = 100;
       my $in_file = $___DEV_F;
       my $rule_file = $___SCFG_RULES;
+      my $rm_file = $___RM_RULES;
       my $out_file = $___WORKING_DIR."/".$sentIndex.".out";
       $sentIndex = 0;       # Reset the sentIndex to 1
-      $decoder_cmd = "$___DECODER_PREFIX $___DECODER $parameters --config $___CONFIG $kriya_opts --index $sentIndex --inputfile $in_file --outputfile $filename --glue-file $___GLUE_RULES --ttable-file $rule_file --lmodel-file $___LM_FILE > run$run.out";
+      $decoder_cmd = "$___DECODER_PREFIX $___DECODER $parameters --config $___CONFIG $kriya_opts --index $sentIndex --inputfile $in_file --outputfile $filename --glue-file $___GLUE_RULES --ttable-file $rule_file --rm-file $rm_file --lmodel-file $___LM_FILE > run$run.out";
 #      $decoder_cmd = "$___DECODER_PREFIX $___DECODER $parameters --config $___CONFIG $decoder_config -n-best-list $filename $___N_BEST_LIST_SIZE -i $___DEV_F > run$run.out";
     }
 
