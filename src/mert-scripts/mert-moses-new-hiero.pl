@@ -71,7 +71,7 @@ my $additional_triples = {
               [ 0.4, 0.0, 1.0 ],
               [ 1.0,-1.0, 2.0 ] ],    # phrase penalty
     "lm" => [ [ 1.0, 0.0, 2.0 ] ],    # language model
-    "tm" => [ [ 0.6, 0.0, 1.0 ],      # reordering model
+    "rm" => [ [ 0.6, 0.0, 1.0 ],      # reordering model
               [ 0.6, 0.0, 1.0 ],
               [ 0.6, 0.0, 1.0 ],
               [ 0.6, 0.0, 1.0 ],
