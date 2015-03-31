@@ -41,7 +41,7 @@ class PhraseTable(object):
         rm_wgts_str = 'rm:['+' '.join( [str(x) for x in self.wVec.rm] )+']' if self.wVec.rm else ''
         sys.stderr.write( "Weights are : [%s] %g %g %g %s %s\n" % (tm_wgts_str, self.wVec.wp, self.wVec.glue, self.wVec.lm, reorder_wgts_str, rm_wgts_str) )
         
-        self.loadReorderingModel()
+        if settings.opts.rm_weight_cnt > 0: self.loadReorderingModel()
         self.loadRules(settings.opts.max_phr_len)
         self.rmDict.clear()
 	self.makeGlueRules(TOT_TERMS)

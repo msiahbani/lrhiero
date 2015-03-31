@@ -425,6 +425,7 @@ class Cube(object):
 
         dim = 0
         tmpSpanLst=[]
+        last_phr = None
         for ent_obj in entriesLst:
             # @type ent_obj Entry
             if dim == 0:	## order is important, 0 : hypotheses list
@@ -683,7 +684,7 @@ class ConsequentItem(object):
         elif self.edgeTup[1] == 2:
             self.r_lm_state = self.anteItems[1][2]
 
-def combinePhrases(hyp, rule, lexPosLst, beam_indx=-1):
+def combinePhrasesWithGap(hyp, rule, lexPosLst, beam_indx=-1):
     '''Compute left-to-right lexicalized reodering model for the new hypothesis (developed from hyp using rule),
        compute new last phrase for the new hypothesis and
        compute right-to-left lexicalized reodering model for the last phrases added in hyp'''
@@ -739,6 +740,79 @@ def combinePhrases(hyp, rule, lexPosLst, beam_indx=-1):
 	elif hyp.last_phr and abs(lexPosLst[0] - hyp.last_phr[-1]) <= settings.opts.max_phr_len\
 	     and abs(lexPosLst[-1] - hyp.last_phr[0]) <= settings.opts.max_phr_len:
 	    last_phr = sorted(set(hyp.last_phr+lexPosLst))
+	else:
+	    last_phr = lexPosLst
+    
+    # right-to-left
+    if lexPosLst[0] == pre_phr_pos[-1]+1:                                         # Monotone
+	rmFeat[3] = pre_rule.rm[1][0]
+    elif lexPosLst[-1] == pre_phr_pos[0]-1:                                       # Swap
+	rmFeat[4] = pre_rule.rm[1][1]
+    else:
+	rmFeat[5] = pre_rule.rm[1][2]
+	
+    # adding </s>   ##TODO: Should we add left-to-right lrm for end of sentence symbol?
+    if beam_indx > 0:
+	if lexPosLst[-1] == beam_indx-1:
+            rmFeat[3] += rule.rm[1][0]
+	else: rmFeat[5] += rule.rm[1][2]
+    return rmFeat, last_phr
+
+
+
+def combinePhrases(hyp, rule, lexPosLst, beam_indx=-1):
+    '''Compute left-to-right lexicalized reodering model for the new hypothesis (developed from hyp using rule),
+       compute new last phrase for the new hypothesis and
+       compute right-to-left lexicalized reodering model for the last phrases added in hyp'''
+    
+    rmFeat = [0.0 for i in range(6)]
+    # @type hyp Entry
+    # @type pre_rule, rule Rule
+    (pre_rule, pre_phr_pos) = Entry.getInfRule(hyp)
+    updatePrePhr = False
+    # left-to-right
+    if lexPosLst[0] == pre_phr_pos[-1]+1:                                          # Monotone
+	rmFeat[0] = rule.rm[0][0]
+        if hyp.last_phr: last_phr = sorted(set(hyp.last_phr+lexPosLst))
+        else: last_phr = lexPosLst[:]
+	# if there is a gap in last_phr which is far away from e/indnd of last_phr, crop it
+	ind0 = max(0,last_phr[-1]-settings.opts.max_phr_len-last_phr[0])
+	val0 = max(last_phr[0],last_phr[-1]-settings.opts.max_phr_len)
+        try: 
+	    if last_phr[ind0] != val0:	last_phr = last_phr[ind0:]
+        except:
+            print hyp.last_phr
+            print last_phr
+            print pre_phr_pos
+            print lexPosLst
+            pre_hyp = hyp
+            while pre_hyp != None:
+                print "*****************"
+                (pre_rule, pre_phr_pos) = Entry.getInfRule(pre_hyp)
+                print pre_phr_pos, str(pre_rule)
+                print pre_hyp.last_phr
+                pre_hyp = pre_hyp.getBP()[0]
+            exit(0)
+    elif hyp.last_phr and lexPosLst[0] == hyp.last_phr[-1]+1:                     # Monotone (last_phr might be discountinuous)
+	rmFeat[0] = rule.rm[0][0]
+	#last_phr = sorted(set(hyp.last_phr+lexPosLst))
+	# if there is a gap in last_phr which is far away from end of last_phr, crop it
+	ind0 = max(0,lexPosLst[-1]-settings.opts.max_phr_len-hyp.last_phr[0])
+	val0 = max(hyp.last_phr[0],lexPosLst[-1]-settings.opts.max_phr_len)
+	if hyp.last_phr[ind0] == val0:	last_phr = hyp.last_phr+lexPosLst
+	else:                           last_phr = hyp.last_phr[ind0:]+lexPosLst
+    elif lexPosLst[-1] == pre_phr_pos[0]-1:                                       # Swap
+	rmFeat[1] = rule.rm[0][1]
+        if pre_phr_pos[0] == hyp.last_phr[0]: last_phr = lexPosLst+pre_phr_pos
+        else: last_phr = sorted(set(lexPosLst+hyp.last_phr))
+	#last_phr = sorted(set(lexPosLst+hyp.last_phr))
+    elif hyp.last_phr and lexPosLst[-1] == hyp.last_phr[0]-1:                     # Swap (last_phr might be discountinuous)
+	rmFeat[1] = rule.rm[0][1]
+	last_phr = sorted(set(lexPosLst+hyp.last_phr))
+    else:
+	rmFeat[2] = rule.rm[0][2]
+	if hyp.last_phr and hyp.last_phr[0] <= lexPosLst[0] and lexPosLst[-1] <= hyp.last_phr[-1]:
+	    last_phr = sorted(set(lexPosLst+hyp.last_phr))
 	else:
 	    last_phr = lexPosLst
     

@@ -243,6 +243,7 @@ def loadConfig():
     rmLst = []
     rmDefLst = []
     line_cnt = 0
+    opts.rm_weight_cnt = 0
     cF = open(opts.configFile, 'r')
     for line in cF:
         line = line.strip()
