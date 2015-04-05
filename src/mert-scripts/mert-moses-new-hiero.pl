@@ -358,10 +358,12 @@ die "Directory not found: $___SCFG_RULES (interpreted as $scfg_abs)."
 $___SCFG_RULES = $scfg_abs;
 
 # check if RM files exist
-my $rm_abs = ensure_full_path($___RM_RULES);
-#die "Directory not found: $___SCFG_RULES (interpreted as $scfg_abs)."
-#  if ! -e $scfg_abs;
-$___RM_RULES = $rm_abs;
+if (defined $___RM_RULES) {
+    my $rm_abs = ensure_full_path($___RM_RULES);
+    die "Directory not found: $___RM_RULES (interpreted as $rm_abs)."
+      if ! -e $rm_abs;
+    $___RM_RULES = $rm_abs;
+}
 
 
 # set start run
@@ -835,13 +837,20 @@ sub run_decoder {
     my $decoder_cmd;
 
     if (defined $___JOBS) {
-        if ( -f $___SCFG_RULES ) {              # For specifying the ttable-file directly
+        if (defined $___RM_RULES){
+            if ( -f $___SCFG_RULES ) {              # For specifying the ttable-file directly
 	        $decoder_cmd = "$moses_parallel_cmd $pass_old_sge -config $___CONFIG -kriya-options \"$kriya_opts\" -qsub-prefix mert$run -queue-parameters \"$queue_flags\" -mert-status $mert_status -prev-jobid $prev_jobid -n-best-list $filename -n-best-size $___N_BEST_LIST_SIZE -input-dir $___DEV_F -output-dir $___WORKING_DIR --ttable-file $___SCFG_RULES --rm-file $___RM_RULES --lmfile $___LM_FILE -jobs $___JOBS -decoder-prefix $___DECODER_PREFIX -decoder $___DECODER -nodes-prop \"$nodes_prop\" > run$run.out";
-        }
-        elsif ( -d $___SCFG_RULES ) {           # For specifying the rule-dir having the ttable-files
+            }
+            elsif ( -d $___SCFG_RULES ) {           # For specifying the rule-dir having the ttable-files
 	        $decoder_cmd = "$moses_parallel_cmd $pass_old_sge -config $___CONFIG -kriya-options \"$kriya_opts\" -qsub-prefix mert$run -queue-parameters \"$queue_flags\" -mert-status $mert_status -prev-jobid $prev_jobid -n-best-list $filename -n-best-size $___N_BEST_LIST_SIZE -input-dir $___DEV_F -output-dir $___WORKING_DIR -rule-dir $___SCFG_RULES -rm-dir $___RM_RULES --lmfile $___LM_FILE -jobs $___JOBS -decoder-prefix $___DECODER_PREFIX -decoder $___DECODER -nodes-prop \"$nodes_prop\" > run$run.out";
-
-            #$decoder_cmd = "$moses_parallel_cmd $pass_old_sge -config $___CONFIG -kriya-options \"$kriya_opts\" -qsub-prefix mert$run -queue-parameters \"$queue_flags\" -decoder-parameters \"$parameters $decoder_config\" -mert-status $mert_status -prev-jobid $prev_jobid -n-best-list $filename -n-best-size $___N_BEST_LIST_SIZE -input-dir $___DEV_F -output-dir $___WORKING_DIR -rule-dir $___SCFG_RULES --lmfile $___LM_FILE -jobs $___JOBS -decoder-prefix $___DECODER_PREFIX -decoder $___DECODER -nodes-prop \"$nodes_prop\" > run$run.out";
+            }
+        } else {
+            if ( -f $___SCFG_RULES ) {              # For specifying the ttable-file directly
+	        $decoder_cmd = "$moses_parallel_cmd $pass_old_sge -config $___CONFIG -kriya-options \"$kriya_opts\" -qsub-prefix mert$run -queue-parameters \"$queue_flags\" -mert-status $mert_status -prev-jobid $prev_jobid -n-best-list $filename -n-best-size $___N_BEST_LIST_SIZE -input-dir $___DEV_F -output-dir $___WORKING_DIR --ttable-file $___SCFG_RULES --lmfile $___LM_FILE -jobs $___JOBS -decoder-prefix $___DECODER_PREFIX -decoder $___DECODER -nodes-prop \"$nodes_prop\" > run$run.out";
+            }
+            elsif ( -d $___SCFG_RULES ) {           # For specifying the rule-dir having the ttable-files
+	        $decoder_cmd = "$moses_parallel_cmd $pass_old_sge -config $___CONFIG -kriya-options \"$kriya_opts\" -qsub-prefix mert$run -queue-parameters \"$queue_flags\" -mert-status $mert_status -prev-jobid $prev_jobid -n-best-list $filename -n-best-size $___N_BEST_LIST_SIZE -input-dir $___DEV_F -output-dir $___WORKING_DIR -rule-dir $___SCFG_RULES --lmfile $___LM_FILE -jobs $___JOBS -decoder-prefix $___DECODER_PREFIX -decoder $___DECODER -nodes-prop \"$nodes_prop\" > run$run.out";
+            }
         }
     } else {
       my $sentIndex = 100;
