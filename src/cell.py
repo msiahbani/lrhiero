@@ -76,7 +76,7 @@ class Cell(object):
 
         while ( hypTraceStack ):
             trace_entry = hypTraceStack.pop(0)
-	    hypTraceStack.insert(0, Entry.getBP(trace_entry))
+            hypTraceStack.insert(0, Entry.getBP(trace_entry))
             #inf_entry = Entry.getInfEntry(trace_entry)
             bp_trace += (Entry.getInfCell(trace_entry),)
 
@@ -94,14 +94,14 @@ class Cell(object):
             hypTraceStack.append(entry)
             while ( hypTraceStack ):
                 trace_entry = hypTraceStack.pop(0)
-		try:
-		    back_pointer = Entry.getBP(trace_entry)
-		    rule = Entry.getInfRule(trace_entry)[0]
-		    hypTraceStack.insert(0, back_pointer)
-		    rule = rule.src + " ||| " + rule.tgt
-		    if ( rulesUsedDict.has_key(rule) ): rulesUsedDict[rule] += 1
-		    else: rulesUsedDict[rule] = 1		    
-		except:
+                try:
+                    back_pointer = Entry.getBP(trace_entry)
+                    rule = Entry.getInfRule(trace_entry)[0]
+                    hypTraceStack.insert(0, back_pointer)
+                    rule = rule.src + " ||| " + rule.tgt
+                    if ( rulesUsedDict.has_key(rule) ): rulesUsedDict[rule] += 1
+                    else: rulesUsedDict[rule] = 1
+                except:
                     pass
             cand_cnt += 1
             del hypTraceStack[:]
@@ -131,12 +131,12 @@ class Cell(object):
 
             while ( hypTraceStack ):
                 trace_entry = hypTraceStack.pop(0)
-		try:           # partial hypotheses
+                try:
                     bp = Entry.getBP(trace_entry)
-		    hypTraceStack.insert(0, bp[0])		    
-		    tF.write("partial hyp:  %s\n" %(Entry.printPartialHyp(trace_entry)))
-		    tF.write("rule:         %s\n" % ( str(Entry.getInfRule(trace_entry)[0])))
-                except:        # rules
+                    hypTraceStack.insert(0, bp[0])
+                    tF.write("partial hyp:  %s\n" %(Entry.printPartialHyp(trace_entry)))
+                    tF.write("rule:         %s\n" % ( str(Entry.getInfRule(trace_entry)[0])))
+                except:
                     pass
 
             tF.write("TRACE_END\n")
