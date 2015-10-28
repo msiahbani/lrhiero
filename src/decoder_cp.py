@@ -83,7 +83,7 @@ def decode_CP(sent_indx, lattice_obj):
 	return 0
     chart[p_s].printNBest(None, sent_indx)       # Print the N-best derivations in the last cell
     if settings.opts.trace_rules > 0:
-        chart[p_s].printTrace(self.sent)        # Prints the translation trace for the top-3 entries
+        chart[p_s].printTrace(lattice_obj.sent)        # Prints the translation trace for the top-3 entries
     return 1
 
 def readNParse(sent_count):
