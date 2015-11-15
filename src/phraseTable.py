@@ -306,13 +306,13 @@ class PhraseTable(object):
 				    tgtInd = tgtLst.index(entry_obj.tgt)
 				    glue_rule_pairs -= 1
 				    PhraseTable.tot_rule_pairs -= 1
-				    if newEntries[tgtInd].prob_e_f > entry_obj.featVec[0]: continue
-				    newEntries[tgtInd] = PTableItem(entry_obj.featVec[0], entry_obj)
+				    if newEntries[tgtInd].prob_e_f > entry_obj.featVec[2]: continue
+				    newEntries[tgtInd] = PTableItem(entry_obj.featVec[2], entry_obj)
 				    tgtLst[tgtInd] = entry_obj.tgt
 				    continue
 				except:
 				    pass
-				newEntries.append( PTableItem(entry_obj.featVec[0], entry_obj) )
+				newEntries.append( PTableItem(entry_obj.featVec[2], entry_obj) )
 				tgtLst.append(entry_obj.tgt)
 			newEntries.sort(key=operator.attrgetter("prob_e_f"), reverse=True)
 			PhraseTable.gruleDict[glue_src] = []
