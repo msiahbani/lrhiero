@@ -705,6 +705,8 @@ def combinePhrasesWithGap(hyp, rule, lexPosLst, beam_indx=-1):
         try: 
 	    if last_phr[ind0] != val0:	last_phr = last_phr[ind0:]
         except:
+            last_phr = sorted(set(pre_phr_pos+lexPosLst))
+            '''
             print hyp.last_phr
             print last_phr
             print pre_phr_pos
@@ -716,7 +718,7 @@ def combinePhrasesWithGap(hyp, rule, lexPosLst, beam_indx=-1):
                 print pre_phr_pos, str(pre_rule)
                 print pre_hyp.last_phr
                 pre_hyp = pre_hyp.getBP()[0]
-            exit(0)
+            exit(0)'''
     elif hyp.last_phr and lexPosLst[0] == hyp.last_phr[-1]+1:                     # Monotone (last_phr might be discountinuous)
 	rmFeat[0] = rule.rm[0][0]
 	#last_phr = sorted(set(hyp.last_phr+lexPosLst))
