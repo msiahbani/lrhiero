@@ -777,7 +777,7 @@ def combinePhrases(hyp, rule, lexPosLst, beam_indx=-1):
 	rmFeat[0] = rule.rm[0][0]
         if hyp.last_phr: last_phr = sorted(set(hyp.last_phr+lexPosLst))
         else: last_phr = lexPosLst[:]
-	# if there is a gap in last_phr which is far away from e/indnd of last_phr, crop it
+	# if there is a gap in the last_phr which is far away from e/indnd of last_phr, crop it
 	ind0 = max(0,last_phr[-1]-settings.opts.max_phr_len-last_phr[0])
 	val0 = max(last_phr[0],last_phr[-1]-settings.opts.max_phr_len)
         try: 
