@@ -45,10 +45,10 @@ class Entry(object):
 
     def setInfCell(self, span):
         self.inf_cell = span
-    
+
     def setInfRule(self, (rule, pos_lst)):
-	self.inf_rule = (rule, pos_lst)
-	
+        self.inf_rule = (rule, pos_lst)
+
     def getInfCell(self):
         return self.inf_cell
 
@@ -93,20 +93,20 @@ class Entry(object):
             feats = ['lm:', 'glue:', 'wp:', 'tm:']
 	reorderFeats = []
 	if settings.opts.weight_d != 0:
-	    feats.append('d:')
-	    reorderFeats.append(self.featVec[8])
+            feats.append('d:')
+            reorderFeats.append(self.featVec[8])
 	if settings.opts.weight_dg != 0:
-	    feats.append('dg:')
-	    reorderFeats.append(self.featVec[9])
+            feats.append('dg:')
+            reorderFeats.append(self.featVec[9])
 	if settings.opts.weight_r != 0:
-	    feats.append('r:')
-	    reorderFeats.append(self.featVec[10])
+            feats.append('r:')
+            reorderFeats.append(self.featVec[10])
 	if settings.opts.weight_w != 0:
-	    feats.append('wd:')
-	    reorderFeats.append(self.featVec[11])
+            feats.append('wd:')
+            reorderFeats.append(self.featVec[11])
 	if settings.opts.weight_h!= 0:
-	    feats.append('hd:')
-	    reorderFeats.append(self.featVec[12])
+            feats.append('hd:')
+            reorderFeats.append(self.featVec[12])
         if settings.opts.rm_weight_cnt > 0:
 	    feats.append('rm:')
 	    reorderFeats.append(' '.join( map(lambda x: str(x), self.featVec[13:19]) ))	
@@ -136,8 +136,8 @@ class Entry(object):
     def getHeuScore(self):
 	'''Get the heuristic cost for terminal rules to compute future cost'''
 	if self.tm4_score is None:
-	    self.tm4_score = self.featVec[0] * settings.feat.tm[0] + self.featVec[1] * settings.feat.tm[1] +\
-	        self.featVec[2] * settings.feat.tm[2] + self.featVec[3] * settings.feat.tm[3]
+            self.tm4_score = self.featVec[0] * settings.feat.tm[0] + self.featVec[1] * settings.feat.tm[1] +\
+                self.featVec[2] * settings.feat.tm[2] + self.featVec[3] * settings.feat.tm[3]
 	return self.tm4_score + self.lm_heu
 	#return self.score - (wvec_wp * self.featVec[5]) + self.lm_heu
 	    
@@ -172,6 +172,6 @@ class Entry(object):
 	
 
 def getInitHyp(sent_len, initRule):
-	init_hyp = Entry(0, "<s>",[0 for i in settings.opts.U_lpTup[2]], "<s>", defaultSign(sent_len)) 
-	init_hyp.setInfRule((initRule, [-1]))
-	return init_hyp
+        init_hyp = Entry(0, "<s>",[0 for i in settings.opts.U_lpTup[2]], "<s>", defaultSign(sent_len)) 
+        init_hyp.setInfRule((initRule, [-1]))
+        return init_hyp
