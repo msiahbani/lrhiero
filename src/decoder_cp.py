@@ -36,12 +36,12 @@ def decode_CP(sent_indx, lattice_obj):
     for p_s in range(1, lattice_obj.sent_len+1):
 	## log
 	#print "\nFilling stack:", p_s
-	if ( p_s == lattice_obj.sent_len ):
-	    final_cell = True
-	cube_indx = 0
+        if ( p_s == lattice_obj.sent_len ):
+            final_cell = True
+        cube_indx = 0
 	merge_obj = Lazy(sent_indx, p_s, final_cell)
-	for p_j in range(max(0, p_s - settings.opts.fr_rule_terms), p_s):
-	    p_l = p_s - p_j
+        for p_j in range(max(0, p_s - settings.opts.fr_rule_terms), p_s):
+            p_l = p_s - p_j
 	    ## log
 	    #print "\nFilling stack:", p_s, "\tSpan length:", p_l
 	    for group_sign in chart[p_j].table:
