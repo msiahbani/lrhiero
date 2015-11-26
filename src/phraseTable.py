@@ -37,14 +37,14 @@ class PhraseTable(object):
         self.ttlg = settings.opts.ttlg # for glue rules 
 
         tm_wgts_str = ' '.join( [str(x) for x in self.wVec.tm] )
-	reorder_wgts_str = "d:"+str(self.wVec.d)+" dg:"+str(self.wVec.dg)+" r:"+str(self.wVec.r)+" w:"+str(self.wVec.w)+" h:"+str(self.wVec.h)
+        reorder_wgts_str = "d:"+str(self.wVec.d)+" dg:"+str(self.wVec.dg)+" r:"+str(self.wVec.r)+" w:"+str(self.wVec.w)+" h:"+str(self.wVec.h)
         rm_wgts_str = 'rm:['+' '.join( [str(x) for x in self.wVec.rm] )+']' if self.wVec.rm else ''
         sys.stderr.write( "Weights are : [%s] %g %g %g %s %s\n" % (tm_wgts_str, self.wVec.wp, self.wVec.glue, self.wVec.lm, reorder_wgts_str, rm_wgts_str) )
         
         if settings.opts.rm_weight_cnt > 0: self.loadReorderingModel()
         self.loadRules(settings.opts.max_phr_len)
         self.rmDict.clear()
-	self.makeGlueRules(TOT_TERMS)
+        self.makeGlueRules(TOT_TERMS)
 
     def delPT(self):
         del PhraseTable.ruleDict
@@ -68,8 +68,8 @@ class PhraseTable(object):
                 except:
                     print line
                     exit(0)
-		src = src.strip()
-		tgt = tgt.strip()
+                src = src.strip()
+                tgt = tgt.strip()
                 l2r_v = [float(p) for p in l2r.strip().split()] 
                 r2l_v = [float(p) for p in r2l.strip().split()] 
                 if settings.opts.force_decode and not PhraseTable.tgtMatchesRef(tgt): continue
@@ -95,10 +95,10 @@ class PhraseTable(object):
         PhraseTable.tot_rule_pairs = 0
         prev_src = ''
         featVec = [0.0 for i in settings.opts.U_lpTup[2]]
-	featVec[4] = self.pp_val
+        featVec[4] = self.pp_val
         uniq_src_rules = 0
         entriesLst = []
-	lm_H = 0
+        lm_H = 0
 
         t_beg = time.time()
         rF = open(settings.opts.ruleFile, 'r')
@@ -108,8 +108,8 @@ class PhraseTable(object):
                 line = line.strip()
                 (src, tgt, probs) = line.split(' ||| ')[0:3]                       # For Kriya phrase table
 #                (src, tgt, f_align, r_align, probs) = line.split(' ||| ')     # For Moses phrase table
-		src = src.strip()
-		tgt = tgt.strip()
+                src = src.strip()
+                tgt = tgt.strip()
                 if settings.opts.force_decode and not PhraseTable.tgtMatchesRef(tgt): continue
                 if settings.opts.one_nt_decode and src.find('X__2') >= 0: continue
                 PhraseTable.tot_rule_pairs += 1
@@ -126,8 +126,8 @@ class PhraseTable(object):
                 if len(prev_src) > 0 and prev_src != src:
                     entriesLst.sort(key=operator.attrgetter("prob_e_f"), reverse=True)
                     PhraseTable.ruleDict[prev_src] = []
-		    ## store terminal rules to generate glue rules
-		    if prev_src.find("X__") < 0: PhraseTable.terminalRules[prev_src]=0
+                    ## store terminal rules to generate glue rules
+                    if prev_src.find("X__") < 0: PhraseTable.terminalRules[prev_src]=0
                     tgt_options = 0
                     for pt_item_obj in entriesLst:
                         entry_obj = pt_item_obj.entry_item
@@ -143,7 +143,7 @@ class PhraseTable(object):
                                 print len(self.rmDict)
                                 print self.rmDict[phr[0]]
                                 exit(0)
-			PhraseTable.ruleDict[prev_src].append( entry_obj )
+                        PhraseTable.ruleDict[prev_src].append( entry_obj )
                         tgt_options += 1
                         if(self.ttl > 0 and tgt_options >= self.ttl): break
                     del entriesLst[:]
@@ -155,18 +155,18 @@ class PhraseTable(object):
             # Handle the last rule
             entriesLst.sort(key=operator.attrgetter("prob_e_f"), reverse=True)
             PhraseTable.ruleDict[prev_src] = []
-	    ## store terminal rules to generate glue rules
-	    if prev_src.find("X__") < 0: PhraseTable.terminalRules[prev_src]=0
+            ## store terminal rules to generate glue rules
+            if prev_src.find("X__") < 0: PhraseTable.terminalRules[prev_src]=0
             tgt_options = 0
             for pt_item_obj in entriesLst:
                 entry_obj = pt_item_obj.entry_item
                 lm_score = self.wVec.lm * self.getLMHeuScore(entry_obj.tgt)
                 entry_obj.lm_heu = lm_score
                 entry_obj.completeInfo()
-		# compute lexicalized reordering model features
-		if settings.opts.rm_weight_cnt > 0:
-		    phr = self.convertRule2Phr((prev_src, entry_obj.tgt))
-		    entry_obj.rm = self.rmDict[phr[0]][phr[1]]		
+                # compute lexicalized reordering model features
+                if settings.opts.rm_weight_cnt > 0:
+                    phr = self.convertRule2Phr((prev_src, entry_obj.tgt))
+                    entry_obj.rm = self.rmDict[phr[0]][phr[1]]
                 PhraseTable.ruleDict[prev_src].append( entry_obj )
                 tgt_options += 1
                 if(self.ttl > 0 and tgt_options >= self.ttl): break
@@ -213,27 +213,27 @@ class PhraseTable(object):
         featVec = [float(x) for x in probs.split()]                              # For using Kriya PT (for base-e log probs)
 
         # now add phrase penalty and word penalty to the featVec
-	term_count=0
-	tgtReordering = 0
-	for w in tgt_rule.split():
-	    if not w.startswith("X__"):
-		term_count += 1
-	    elif w!="X__"+str(term_count): tgtReordering = 1
+        term_count=0
+        tgtReordering = 0
+        for w in tgt_rule.split():
+            if not w.startswith("X__"):
+                term_count += 1
+            elif w!="X__"+str(term_count): tgtReordering = 1
         featVec += [self.pp_val, -term_count, 0, 0] 
-	fLen = len(featVec)
-	for i in range(len(settings.opts.U_lpTup[2]) - fLen):
+        fLen = len(featVec)
+        for i in range(len(settings.opts.U_lpTup[2]) - fLen):
             featVec.append(0)
-	featVec[10] = tgtReordering ## feature "r"
+        featVec[10] = tgtReordering ## feature "r"
 
 
     def makeGlueRules(self, TOT_TERMS):  
         '''Loads the glue rules along with their feature values'''
         prev_src = ''
-	glue_rule_pairs = 0
+        glue_rule_pairs = 0
         uniq_src_rules = 0
         entriesLst = []
         t_beg = time.time()
-	ppenalty = self.wVec.tm[4]*self.pp_val         
+        ppenalty = self.wVec.tm[4]*self.pp_val         
 
         try:
             #for src in PhraseTable.terminalRules:
@@ -241,21 +241,21 @@ class PhraseTable(object):
 		entriesLst = PhraseTable.ruleDict[src]
 		nonTermNo = -1
 		if src in PhraseTable.terminalRules:
-		    tgts = [' X__1', ' X__1', ' X__1 X__2', ' X__2 X__1']	
-		    srcs = ['X__1 '+ src, src+' X__1', 'X__1 '+ src+' X__2']		      
+		    tgts = [' X__1', ' X__1', ' X__1 X__2', ' X__2 X__1']
+		    srcs = ['X__1 '+ src, src+' X__1', 'X__1 '+ src+' X__2']
 		elif settings.opts.glue_type > 0:
 		    nonTermNo = getLastNonTremNumber(src)
 		    if nonTermNo < 0: continue
 		    if nonTermNo == 0: 
 			if src[:-5] in PhraseTable.terminalRules: continue
 			if settings.opts.glue_type == 1:
-			    tgts = ['']	
+			    tgts = ['']
 			    srcs = [src]
 			else:
-			    tgts = ['', ' X__3']	
+			    tgts = ['', ' X__3']
 			    srcs = [src, src+' X__3']
 		    else:
-			tgts = [' X__'+str(nonTermNo+1)]	
+			tgts = [' X__'+str(nonTermNo+1)]
 			srcs = [src+tgts[0]]
                 else: continue
 
@@ -306,29 +306,29 @@ class PhraseTable(object):
 				    tgtInd = tgtLst.index(entry_obj.tgt)
 				    glue_rule_pairs -= 1
 				    PhraseTable.tot_rule_pairs -= 1
-				    if newEntries[tgtInd].prob_e_f > entry_obj.featVec[0]: continue
-				    newEntries[tgtInd] = PTableItem(entry_obj.featVec[0], entry_obj)
+				    if newEntries[tgtInd].prob_e_f > entry_obj.featVec[2]: continue
+				    newEntries[tgtInd] = PTableItem(entry_obj.featVec[2], entry_obj)
 				    tgtLst[tgtInd] = entry_obj.tgt
 				    continue
 				except:
 				    pass
-				newEntries.append( PTableItem(entry_obj.featVec[0], entry_obj) )
+				newEntries.append( PTableItem(entry_obj.featVec[2], entry_obj) )
 				tgtLst.append(entry_obj.tgt)
 			newEntries.sort(key=operator.attrgetter("prob_e_f"), reverse=True)
 			PhraseTable.gruleDict[glue_src] = []
 			for entry_pair in newEntries:
-			    PhraseTable.gruleDict[glue_src].append(entry_pair.entry_item)	    
-		    else:		    
+			    PhraseTable.gruleDict[glue_src].append(entry_pair.entry_item)
+		    else: 
 			if PhraseTable.glue_trie is None:
 			    PhraseTable.glue_trie = SimpleSuffixTreeForGlue(glue_src,TOT_TERMS)
 			else:
 			    if glue_src in PhraseTable.gruleDict: print "exist previously!!: ",glue_src
 			    PhraseTable.glue_trie.addText(glue_src)
 			PhraseTable.gruleDict[glue_src] = tmpRuleLst
-				
+
 	finally:
 	    t_end = time.time()
-            sys.stderr.write( "Glue rule - ttable limit                     : %d\n" % (self.ttlg) )
+            sys.stderr.write( "Glue rule - ttable limit                      : %d\n" % (self.ttlg) )
             sys.stderr.write( "Unique source rules found                     : %d\n" % (uniq_src_rules) )
             sys.stderr.write( "Total pairs of SCFG rules loaded              : %d\n" % (glue_rule_pairs) )
             sys.stderr.write( "Time taken for loading rules in dict and Trie : %1.3f sec\n\n" % (t_end - t_beg) )
@@ -445,7 +445,7 @@ class PhraseTable(object):
 	    gruleLst = []
 	    for tgt_entry in cls.gruleDict.get(src_phr, []):
 		if cls.tgtMatchesRefSent(tgt_entry.tgt, sent_indx):
-		    gruleLst.append( tgt_entry )	    
+		    gruleLst.append( tgt_entry )
             return ruleLst, gruleLst
         else:
             return cls.ruleDict.get(src_phr, []), cls.gruleDict.get(src_phr, [])
@@ -461,7 +461,7 @@ class PhraseTable(object):
     @classmethod
     def addUNKGRule(cls, src_phr, entries):
 	if src_phr not in PhraseTable.ruleDict and src_phr not in PhraseTable.gruleDict:
-	    PhraseTable.glue_trie.addText(src_phr)	
+	    PhraseTable.glue_trie.addText(src_phr)
 	if src_phr not in PhraseTable.gruleDict:
             cls.gruleDict[src_phr] = []
         cls.gruleDict[src_phr] += entries
