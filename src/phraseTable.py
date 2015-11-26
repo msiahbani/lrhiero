@@ -163,8 +163,8 @@ class PhraseTable(object):
                 lm_score = self.wVec.lm * self.getLMHeuScore(entry_obj.tgt)
                 entry_obj.lm_heu = lm_score
                 entry_obj.completeInfo()
-               # compute lexicalized reordering model features
-               if settings.opts.rm_weight_cnt > 0:
+                # compute lexicalized reordering model features
+                if settings.opts.rm_weight_cnt > 0:
                     phr = self.convertRule2Phr((prev_src, entry_obj.tgt))
                     entry_obj.rm = self.rmDict[phr[0]][phr[1]]
                 PhraseTable.ruleDict[prev_src].append( entry_obj )

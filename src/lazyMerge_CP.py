@@ -455,8 +455,10 @@ class Cube(object):
 		if settings.opts.rm_weight_cnt > 0:
 		    # left-to-right lexical reordering model from ent_obj.rm (self.lexPosLst compare to hyp.last_phr)
 		    # right-to-left is the postponed feature values for hyp not for the new added phrase ent_obj (self.lexPosLst)
-		    if Lazy.is_last_cell: rmFeat, last_phr = combinePhrases(hyp, ent_obj, self.lexPosLst, Lazy.beam_indx)
-		    else:                 rmFeat, last_phr = combinePhrases(hyp, ent_obj, self.lexPosLst)
+		    #if Lazy.is_last_cell: rmFeat, last_phr = combinePhrases(hyp, ent_obj, self.lexPosLst, Lazy.beam_indx)
+		    #else:                 rmFeat, last_phr = combinePhrases(hyp, ent_obj, self.lexPosLst)
+		    if Lazy.is_last_cell: rmFeat, last_phr = LRM(hyp, ent_obj, self.lexPosLst, Lazy.beam_indx)
+		    else:                 rmFeat, last_phr = LRM(hyp, ent_obj, self.lexPosLst)
 		    for i in range(6):
 			fVec[13+i] += rmFeat[i]
 			score += settings.feat.rm[i] * rmFeat[i]
@@ -771,13 +773,13 @@ def combinePhrases(hyp, rule, lexPosLst, beam_indx=-1):
     # @type hyp Entry
     # @type pre_rule, rule Rule
     (pre_rule, pre_phr_pos) = Entry.getInfRule(hyp)
-    updatePrePhr = False
+
     # left-to-right
     if lexPosLst[0] == pre_phr_pos[-1]+1:                                          # Monotone
 	rmFeat[0] = rule.rm[0][0]
         if hyp.last_phr: last_phr = sorted(set(hyp.last_phr+lexPosLst))
         else: last_phr = lexPosLst[:]
-	# if there is a gap in last_phr which is far away from e/indnd of last_phr, crop it
+	# if there is a gap in the last_phr which is far away from e/indnd of last_phr, crop it
 	ind0 = max(0,last_phr[-1]-settings.opts.max_phr_len-last_phr[0])
 	val0 = max(last_phr[0],last_phr[-1]-settings.opts.max_phr_len)
         try: 
@@ -832,3 +834,57 @@ def combinePhrases(hyp, rule, lexPosLst, beam_indx=-1):
             rmFeat[3] += rule.rm[1][0]
 	else: rmFeat[5] += rule.rm[1][2]
     return rmFeat, last_phr
+
+
+def LRM(hyp, rule, lexPosLst, beam_indx=-1):
+    '''Compute left-to-right lexicalized reodering model for the new hypothesis (developed from hyp using rule),
+       compute new last phrase for the new hypothesis and
+       compute right-to-left lexicalized reodering model for the last phrases added in hyp'''
+    
+    rmFeat = [0.0 for i in range(6)]
+    # @type hyp Entry
+    # @type pre_rule, rule Rule
+    (pre_rule, pre_phr_pos) = Entry.getInfRule(hyp)
+
+    #monotone, the leftmost lexical term (of rule) is adjacent (left-to-right) to the rightmost previously translated word
+    if hyp.last_phr and lexPosLst[0] == hyp.last_phr[-1]+1:
+        rmFeat[0] = rule.rm[0][0]
+        last_phr = update_translated_words(hyp.last_phr, lexPosLst)
+    elif lexPosLst[0] == pre_phr_pos[-1]+1:
+        rmFeat[0] = rule.rm[0][0]
+        last_phr = update_translated_words(pre_phr_pos, lexPosLst, hyp.last_phr)
+
+    #swap, the rightmost lexical term (of rule) is adjacent (left-to-right) to the leftmost previously translated word
+    elif hyp.last_phr and lexPosLst[-1] == hyp.last_phr[0]-1:   
+        rmFeat[1] = rule.rm[0][1]
+        last_phr = update_translated_words(hyp.last_phr, lexPosLst)
+    elif lexPosLst[-1] == pre_phr_pos[0]-1:   
+        rmFeat[1] = rule.rm[0][1]
+        last_phr = update_translated_words(pre_phr_pos, lexPosLst, hyp.last_phr)
+
+    else:       # disjoint
+        rmFeat[2] = rule.rm[0][2]
+        last_phr = update_translated_words(hyp.last_phr, lexPosLst)
+
+    # right-to-left
+    if lexPosLst[0] == pre_phr_pos[-1]+1:                                         # Monotone
+        rmFeat[3] = pre_rule.rm[1][0]
+    elif lexPosLst[-1] == pre_phr_pos[0]-1:                                       # Swap
+        rmFeat[4] = pre_rule.rm[1][1]
+    else:
+        rmFeat[5] = pre_rule.rm[1][2]
+
+    # adding </s>   ##TODO: Should we add left-to-right lrm for end of sentence symbol?
+    if beam_indx > 0:
+        if lexPosLst[-1] == beam_indx-1:
+            rmFeat[3] += rule.rm[1][0]
+        else: rmFeat[5] += rule.rm[1][2]
+    return rmFeat, last_phr
+
+def update_translated_words(pre_pos, new_pos, hyp_pos=None):
+    if hyp_pos != None and (hyp_pos[0] < new_pos[0] and new_pos[-1] < hyp_pos[-1]):
+        return sorted(set(hyp_pos+new_pos))
+    if pre_pos and ((pre_pos[0] < new_pos[0] and new_pos[-1] < pre_pos[-1])  or  \
+      pre_pos[0] == new_pos[-1]+1 or new_pos[0] == pre_pos[-1]+1):
+        return sorted(set(pre_pos+new_pos))
+    return new_pos
